@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设计美化预览 — 业务中台装配环境</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --font-display:'DM Sans',-apple-system,BlinkMacSystemFont,'Microsoft YaHei','PingFang SC',sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,'Microsoft YaHei','PingFang SC','Helvetica Neue',Arial,sans-serif;
+  --brand:rgb(70,110,227);
+  --brand-light:rgb(95,135,245);
+  --brand-deep:rgb(50,88,195);
+  --brand-subtle:rgba(70,110,227,0.08);
+  --brand-wash:rgba(70,110,227,0.04);
+  --amber:oklch(68% 0.16 83);
+  --amber-subtle:oklch(94% 0.06 85);
+  --success:oklch(55% 0.16 155);
+  --success-subtle:oklch(93% 0.05 155);
+  --danger:oklch(52% 0.18 22);
+  --info:oklch(55% 0.12 235);
+  --info-subtle:oklch(93% 0.04 235);
+  --text-primary:oklch(18% 0.012 270);
+  --text-secondary:oklch(40% 0.008 260);
+  --text-tertiary:oklch(55% 0.006 250);
+  --text-inverse:oklch(97% 0.002 90);
+  --surface-base:oklch(98.5% 0.004 90);
+  --surface-raised:oklch(100% 0 0);
+  --surface-subtle:oklch(96.5% 0.006 85);
+  --surface-hover:oklch(94% 0.008 80);
+  --border-default:oklch(88% 0.006 85);
+  --border-subtle:oklch(93% 0.004 82);
+  --border-strong:oklch(82% 0.008 85);
+  --shadow-xs:0 1px 2px oklch(0% 0 0 / 0.04);
+  --shadow-sm:0 1px 3px oklch(0% 0 0 / 0.06),0 1px 2px oklch(0% 0 0 / 0.04);
+  --shadow-md:0 4px 6px oklch(0% 0 0 / 0.05),0 2px 4px oklch(0% 0 0 / 0.04);
+  --shadow-lg:0 10px 25px oklch(0% 0 0 / 0.06),0 4px 10px oklch(0% 0 0 / 0.04);
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:16px;
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+}
+body{font-family:var(--font-body);color:var(--text-primary);background:#F0F2F5;min-height:100vh;padding:32px}
+.preview-wrap{max-width:1200px;margin:0 auto}
+
+/* ---- Header ---- */
+.preview-header{text-align:center;margin-bottom:40px}
+.preview-header h1{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-0.03em;color:var(--text-primary)}
+.preview-header h1 span{color:var(--brand)}
+.preview-header p{color:var(--text-tertiary);margin-top:8px;font-size:15px;max-width:500px;margin-left:auto;margin-right:auto}
+
+/* ---- Section ---- */
+.section{margin-bottom:48px}
+.section-title{font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.section-title .phase{font-size:11px;font-weight:600;padding:2px 10px;border-radius:999px;background:var(--brand-subtle);color:var(--brand)}
+.section-desc{font-size:13px;color:var(--text-tertiary);margin-bottom:16px}
+
+/* ---- Comparison Grid ---- */
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.comp-card{border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-raised);box-shadow:var(--shadow-sm);transition:box-shadow 0.2s}
+.comp-card:hover{box-shadow:var(--shadow-md)}
+.comp-card.before{border-top:3px solid #FF4D4F}
+.comp-card.after{border-top:3px solid var(--success)}
+.comp-card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-subtle)}
+.comp-card-header .label{font-size:13px;font-weight:600}
+.comp-card-header .label.before{color:#FF4D4F}
+.comp-card-header .label.after{color:var(--success)}
+.comp-card-header .badge{font-size:10px;padding:2px 8px;border-radius:999px;background:var(--surface-subtle);color:var(--text-tertiary)}
+.comp-body{padding:16px}
+
+/* ---- Navbar Mock ---- */
+.navbar-mock{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 16px;border-radius:6px;color:white;font-size:13px}
+.navbar-mock .brand{display:flex;align-items:center;gap:8px}
+.navbar-mock .logo{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px}
+.navbar-mock .nav-items{display:flex;gap:2px}
+.navbar-mock .nav-item{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;height:28px;font-size:12px;background:rgba(255,255,255,.15)}
+.navbar-mock.nav-wrong{background:#5B8DEF}
+.navbar-mock.nav-oklch{background:oklch(58% 0.16 260)}
+.navbar-mock.nav-correct{background:var(--brand)}
+
+/* ---- Sidebar Mock ---- */
+.sidebar-mock{width:200px;border-radius:6px;padding:12px;font-size:12px}
+.sidebar-mock .side-item{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:4px;margin-bottom:2px}
+.sidebar-mock .side-item.active{background:var(--brand-subtle);color:var(--brand);font-weight:600}
+.sidebar-mock.side-wrong{background:#F0F4FA}
+.sidebar-mock.side-correct{background:white;border:1px solid var(--border-default)}
+
+/* ---- Page Hero Mock ---- */
+.hero-mock{position:relative;padding:16px 24px;background:white;border-bottom:1px solid var(--border-subtle);overflow:hidden;border-radius:6px}
+.hero-mock::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand);border-radius:0 2px 2px 0}
+.hero-mock::after{content:'';position:absolute;right:-40px;top:-20px;width:140px;height:140px;background:radial-gradient(circle,var(--brand-subtle) 0%,transparent 70%);pointer-events:none;opacity:0.6}
+.hero-mock .eyebrow{font-family:var(--font-display);font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--brand);margin-bottom:4px}
+.hero-mock h2{font-family:var(--font-display);font-size:1.2rem;font-weight:700;letter-spacing:-0.02em}
+.hero-mock .subtitle{font-size:12px;color:var(--text-tertiary);margin-top:4px;max-width:56ch}
+.hero-mock .actions{display:flex;gap:8px;margin-top:10px}
+
+/* ---- Demo Table ---- */
+.demo-table{width:100%;border-collapse:collapse;font-size:12px}
+.demo-table th{padding:6px 10px;text-align:left;font-weight:600;color:var(--text-secondary);background:var(--surface-subtle);border-bottom:1px solid var(--border-default)}
+.demo-table td{padding:6px 10px;border-bottom:1px solid var(--border-subtle)}
+.demo-table tbody tr{transition:background 0.12s}
+
+/* ---- Tag / Badge ---- */
+.tag{padding:1px 8px;border-radius:999px;font-size:10px;display:inline-block}
+.tag-emergency{background:#FFF1F0;color:#FF4D4F}
+.tag-high{background:#FFF7E6;color:#FA8C16}
+.tag-medium{background:#F0F5FF;color:#4A7DE0}
+.tag-low{background:#F5F5F5;color:#999}
+
+/* ---- Bug List ---- */
+.bug-list{list-style:none;padding:0}
+.bug-list li{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border-subtle)}
+.bug-list li:last-child{border:none}
+.bug-list .icon{flex-shrink:0;width:18px;text-align:center;font-size:12px;margin-top:2px}
+.bug-list .icon.critical{color:#FF4D4F}
+.bug-list .icon.warn{color:#FA8C16}
+.bug-list .icon.ok{color:var(--success)}
+.fix-badge{font-size:10px;padding:1px 6px;border-radius:4px;flex-shrink:0}
+.fix-badge.p1{background:#FFF1F0;color:#FF4D4F}
+.fix-badge.p2{background:#FFF7E6;color:#FA8C16}
+.fix-badge.p3{background:#F0F5FF;color:#4A7DE0}
+
+/* ---- Design Token Cards ---- */
+.token-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.token-card{padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--surface-raised)}
+.token-card .token-name{font-size:11px;color:var(--text-tertiary);margin-bottom:4px;font-weight:600}
+.token-card .token-swatch{height:28px;border-radius:4px;margin-bottom:6px;border:1px solid rgba(0,0,0,.05)}
+.token-card .token-value{font-family:monospace;font-size:10px;color:var(--text-primary);word-break:break-all}
+
+/* ---- Checklist ---- */
+.checklist{list-style:none;padding:0}
+.checklist li{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:var(--text-primary)}
+.checklist .cb{width:16px;height:16px;border-radius:3px;border:2px solid #ccc;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;transition:all 0.2s}
+.checklist .cb.done{border-color:var(--success);background:var(--success);color:white}
+.checklist .cb.pending{border-color:#D0D0D0}
+
+/* ---- Footer ---- */
+.footer{text-align:center;padding:24px 0;font-size:12px;color:var(--text-tertiary);border-top:1px solid var(--border-subtle);margin-top:24px}
+
+/* ---- Row Flex ---- */
+.flex{display:flex}
+.gap-2{gap:8px}
+.gap-4{gap:16px}
+.items-center{align-items:center}
+.mb-2{margin-bottom:8px}
+.mb-4{margin-bottom:16px}
+.mt-2{margin-top:8px}
+.mt-4{margin-top:16px}
+.mr-2{margin-right:8px}
+.text-sm{font-size:13px}
+.text-xs{font-size:12px}
+.text-tertiary{color:var(--text-tertiary)}
+.font-display{font-family:var(--font-display)}
+.font-bold{font-weight:700}
+</style>
+</head>
+<body>
+<div class="preview-wrap">
+
+  <!-- ===== HEADER ===== -->
+  <div class="preview-header">
+    <h1>设计美化 · <span>预览</span></h1>
+    <p>业务中台装配环境 — 全站设计一致性升级方案</p>
+  </div>
+
+  <!-- ===== SECTION 1: 审计摘要 ===== -->
+  <div class="section">
+    <div class="section-title">
+      审计发现 <span class="phase">Phase 0</span>
+    </div>
+    <div class="section-desc">全站12个文件扫描，识别出以下需要修复的问题</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px">
+      <div class="comp-card before" style="border-top-color:#FF4D4F">
+        <div class="comp-card-header">
+          <span class="label before"><i class="fa-solid fa-circle-exclamation mr-2"></i>品牌色漂移</span>
+          <span class="badge">2 pages</span>
+        </div>
+        <div class="comp-body">
+          <ul class="bug-list">
+            <li><span class="icon critical">●</span> <span><b>demand.html</b> header 硬编码 <code>#5B8DEF</code>，应为 <code>var(--brand)</code></span></li>
+            <li><span class="icon critical">●</span> <span><b>assembly.html</b> header 硬编码 <code>oklch(58% 0.16 260)</code></span></li>
+            <li><span class="icon warn">●</span> <span><b>demand.html</b> 徽章用 <code>#ED7D10</code> 而非 <code>var(--amber)</code></span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="comp-card before" style="border-top-color:#FA8C16">
+        <div class="comp-card-header">
+          <span class="label before" style="color:#FA8C16"><i class="fa-solid fa-pen-ruler mr-2"></i>缺少 Page Hero</span>
+          <span class="badge">1 page</span>
+        </div>
+        <div class="comp-body">
+          <ul class="bug-list">
+            <li><span class="icon critical">●</span> <span><b>demand.html</b> 无 page-hero，面包屑后直接跳表格</span></li>
+            <li><span class="icon ok">✓</span> <span>其他 9 个内页已有 page-hero（review, data-service 等）</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="comp-card before" style="border-top-color:#4A7DE0">
+        <div class="comp-card-header">
+          <span class="label before" style="color:#4A7DE0"><i class="fa-solid fa-font mr-2"></i>字体缺失</span>
+          <span class="badge">11 pages</span>
+        </div>
+        <div class="comp-body">
+          <ul class="bug-list">
+            <li><span class="icon warn">●</span> <span><b>所有11个内页</b> 未加载 DM Sans 字体</span></li>
+            <li><span class="icon ok">✓</span> <span>仅 index.html 加载了 Google Fonts DM Sans</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="comp-card before" style="border-top-color:#4A7DE0">
+        <div class="comp-card-header">
+          <span class="label before" style="color:#4A7DE0"><i class="fa-solid fa-code mr-2"></i>其他问题</span>
+          <span class="badge">3 issues</span>
+        </div>
+        <div class="comp-body">
+          <ul class="bug-list">
+            <li><span class="icon warn">●</span> <span><b>components.html</b> 两个 <code>Scaffold.init</code> 调用</span></li>
+            <li><span class="icon warn">●</span> <span><b>demand.html</b> 背景硬编码 <code>#EEF1F6</code></span></li>
+            <li><span class="icon warn">●</span> <span>全站面包屑硬编码 <code>#E0E4E8</code> / <code>#999999</code></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 2: 导航栏修复对比 ===== -->
+  <div class="section">
+    <div class="section-title">
+      ① 导航栏品牌色统一 <span class="phase">Phase 1</span>
+    </div>
+    <div class="section-desc">将不一致的 header 背景色统一为 <code>var(--brand)</code></div>
+    <div class="comp-grid">
+      <div class="comp-card before">
+        <div class="comp-card-header">
+          <span class="label before"><i class="fa-regular fa-circle-xmark mr-2"></i>修复前</span>
+          <span class="badge">demand.html</span>
+        </div>
+        <div class="comp-body">
+          <div class="navbar-mock nav-wrong">
+            <div class="brand">
+              <div class="logo" style="background:linear-gradient(135deg,#ED7D10,#C46200)"><i class="fa-solid fa-oil-well" style="color:white;font-size:8px"></i></div>
+              <span>业务中台装配环境</span>
+            </div>
+            <div class="nav-items">
+              <div class="nav-item">首页</div>
+              <div class="nav-item">计划管理</div>
+              <div class="nav-item" style="opacity:.5">…</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">background: <code style="color:#FF4D4F">#5B8DEF</code></div>
+          <div style="margin-top:4px">
+            <span class="tag" style="background:#FFF0F0;color:#FF4D4F">❌ 与品牌色 #466EE3 不一致</span>
+          </div>
+        </div>
+      </div>
+      <div class="comp-card after">
+        <div class="comp-card-header">
+          <span class="label after"><i class="fa-regular fa-circle-check mr-2"></i>修复后</span>
+          <span class="badge">统一标准</span>
+        </div>
+        <div class="comp-body">
+          <div class="navbar-mock nav-correct">
+            <div class="brand">
+              <div class="logo" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well" style="color:white;font-size:8px"></i></div>
+              <span>业务中台装配环境</span>
+            </div>
+            <div class="nav-items">
+              <div class="nav-item">首页</div>
+              <div class="nav-item">计划管理</div>
+              <div class="nav-item" style="opacity:.5">…</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">background: <code style="color:var(--success)">var(--brand)</code> <code>= rgb(70, 110, 227)</code></div>
+          <div style="margin-top:4px">
+            <span class="tag" style="background:#F0FFF0;color:var(--success)">✅ 与其他 9 个页面一致</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 3: 侧边栏修复对比 ===== -->
+  <div class="section">
+    <div class="section-title">
+      ② 侧边栏白色背景 <span class="phase">Phase 1</span>
+    </div>
+    <div class="section-desc"><span class="tag" style="background:#F0FFF0;color:var(--success)">✓ 已修复</span> 移除全站 inline <code>background:#F0F4FA</code>，恢复 scaffold.css 定义的白色背景</div>
+    <div class="comp-grid">
+      <div class="comp-card before">
+        <div class="comp-card-header"><span class="label before">修复前</span><span class="badge">#F0F4FA</span></div>
+        <div class="comp-body">
+          <div class="sidebar-mock side-wrong">
+            <div class="side-item">📋 需求台账</div>
+            <div class="side-item active">📄 评审管理</div>
+            <div class="side-item">📦 组件库</div>
+            <div class="side-item">🚀 发布管理</div>
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:var(--text-tertiary)">浅灰蓝底色，与设计规范冲突</div>
+        </div>
+      </div>
+      <div class="comp-card after">
+        <div class="comp-card-header"><span class="label after">修复后</span><span class="badge">#FFFFFF</span></div>
+        <div class="comp-body">
+          <div class="sidebar-mock side-correct">
+            <div class="side-item">📋 需求台账</div>
+            <div class="side-item active">📄 评审管理</div>
+            <div class="side-item">📦 组件库</div>
+            <div class="side-item">🚀 发布管理</div>
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:var(--text-tertiary)">白色背景，与 scaffold.css 规范一致</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 4: Page Hero 对比 ===== -->
+  <div class="section">
+    <div class="section-title">
+      ③ 添加 Page Hero <span class="phase">Phase 2</span>
+    </div>
+    <div class="section-desc">为 demand.html 添加品牌色竖条 + 光晕的头部区域，与其他内页保持一致</div>
+    <div class="comp-grid">
+      <div class="comp-card before">
+        <div class="comp-card-header"><span class="label before">当前 demand.html</span></div>
+        <div class="comp-body">
+          <div style="background:white;border-radius:6px;padding:12px 16px;border:1px solid var(--border-subtle);margin-bottom:8px;font-size:12px;color:#999">
+            🏠 首页 → 应用架构使能 → 业务中台管理 → 需求台账
+          </div>
+          <div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">直接进入表格工具栏，缺少页面标识</div>
+          <div style="margin-top:8px">
+            <div class="demo-table">
+              <table style="width:100%">
+                <thead><tr><th><input type="checkbox"></th><th>编号</th><th>标题</th></tr></thead>
+                <tbody><tr><td></td><td>DMD-0024</td><td>油气生产智能感知平台</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="comp-card after">
+        <div class="comp-card-header"><span class="label after">美化后</span></div>
+        <div class="comp-body">
+          <div class="hero-mock">
+            <div class="eyebrow">Demand Management</div>
+            <h2>需求台账</h2>
+            <div class="subtitle">统一管理业务需求的全生命周期，支持创建、跟踪、评审与发布追溯</div>
+            <div class="actions">
+              <div style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:var(--brand);color:white;border-radius:5px;font-size:11px"><i class="fa-solid fa-plus"></i>新建</div>
+              <div style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:1px solid var(--border-default);border-radius:5px;font-size:11px;color:var(--text-secondary)"><i class="fa-solid fa-download"></i>导出</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">左起4px品牌色竖条 + 右上环境光晕（scaffold.css 已定义）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 5: 字体统一 ===== -->
+  <div class="section">
+    <div class="section-title">
+      ④ DM Sans 字体引入 <span class="phase">Phase 3</span>
+    </div>
+    <div class="section-desc">所有页面统一使用 DM Sans 标题字体，提升品牌识别度</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="comp-card before">
+        <div class="comp-card-header"><span class="label before">当前（无 DM Sans）</span></div>
+        <div class="comp-body" style="font-family:system-ui">
+          <div style="font-size:20px;font-weight:700">需求台账</div>
+          <div style="font-size:13px;color:var(--text-tertiary);margin-top:4px">系统默认字体，视觉效果普通</div>
+          <div style="margin-top:12px">
+            <div style="font-size:14px;font-weight:600">统计卡片标题</div>
+            <div style="font-size:24px;font-weight:700;font-variant-numeric:tabular-nums">128</div>
+            <div style="font-size:11px;color:var(--text-tertiary)">总需求数</div>
+          </div>
+        </div>
+      </div>
+      <div class="comp-card after">
+        <div class="comp-card-header"><span class="label after">统一 DM Sans 后</span></div>
+        <div class="comp-body" style="font-family:'DM Sans',system-ui">
+          <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em">需求台账</div>
+          <div style="font-size:13px;color:var(--text-tertiary);margin-top:4px">DM Sans 字重丰富，几何感强</div>
+          <div style="margin-top:12px">
+            <div style="font-size:14px;font-weight:600;letter-spacing:0.02em">统计卡片标题</div>
+            <div style="font-size:24px;font-weight:700;font-variant-numeric:tabular-nums">128</div>
+            <div style="font-size:11px;color:var(--text-tertiary)">总需求数</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 6: 组件化示例 ===== -->
+  <div class="section">
+    <div class="section-title">
+      ⑤ 组件化内联样式 <span class="phase">Phase 4</span>
+    </div>
+    <div class="section-desc">将重复的 inline-style 提取为 scaffold.css 的组件类</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="comp-card before">
+        <div class="comp-card-header"><span class="label before">内联样式</span></div>
+        <div class="comp-body" style="font-size:11px">
+          <code style="background:var(--surface-subtle);padding:2px 4px;border-radius:2px">style="border-left:1px solid #E0E4E8;padding-left:10px"</code>
+          <code style="background:var(--surface-subtle);padding:2px 4px;border-radius:2px;display:block;margin-top:4px">style="border-color:#F0F0F0"</code>
+          <code style="background:var(--surface-subtle);padding:2px 4px;border-radius:2px;display:block;margin-top:4px">style="color:#999999"</code>
+          <div style="margin-top:8px;padding:6px;background:var(--surface-subtle);border-radius:4px;color:var(--text-tertiary)">✕ 重复、难维护、与设计变量脱节</div>
+        </div>
+      </div>
+      <div class="comp-card after">
+        <div class="comp-card-header"><span class="label after">CSS 组件类</span></div>
+        <div class="comp-body" style="font-size:11px">
+          <code style="background:var(--surface-subtle);padding:2px 4px;border-radius:2px;color:var(--success)">class="card-footer"</code>
+          <code style="background:var(--surface-subtle);padding:2px 4px;border-radius:2px;display:block;margin-top:4px;color:var(--success)">class="card-hover"</code>
+          <code style="background:var(--surface-subtle);padding:2px 4px;border-radius:2px;display:block;margin-top:4px;color:var(--success)">class="empty-state"</code>
+          <div style="margin-top:8px;padding:6px;background:#F0FFF0;border-radius:4px;color:var(--success)">✓ 统一维护、响应式、与设计变量绑定</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 7: 全栈执行清单 ===== -->
+  <div class="section">
+    <div class="section-title">
+      执行清单 <span class="phase">7 Phases</span>
+    </div>
+    <div class="section-desc">按优先级排序，预计改动量</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+      <div style="padding:14px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--surface-raised)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="width:24px;height:24px;border-radius:50%;background:#FF4D4F;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">1</span>
+          <span style="font-weight:600;font-size:14px">Phase 1 — 问题修复</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="cb done">✓</span>侧边栏白色背景（已修）</li>
+          <li><span class="cb pending"></span>demand.html header 品牌色</li>
+          <li><span class="cb pending"></span>assembly.html header 品牌色</li>
+          <li><span class="cb pending"></span>components.html 双 init</li>
+          <li><span class="cb pending"></span>统一面包屑色值</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">改 4 页</div>
+      </div>
+      <div style="padding:14px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--surface-raised)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="width:24px;height:24px;border-radius:50%;background:#FA8C16;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">2</span>
+          <span style="font-weight:600;font-size:14px">Phase 2 — Page Hero</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="cb pending"></span>demand.html 添加 page-hero</li>
+          <li><span class="cb pending"></span>面包屑复用 scaffold 样式</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">改 1 页</div>
+      </div>
+      <div style="padding:14px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--surface-raised)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="width:24px;height:24px;border-radius:50%;background:#4A7DE0;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">3</span>
+          <span style="font-weight:600;font-size:14px">Phase 3 — 字体统一</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="cb pending"></span>11 个内页引入 DM Sans</li>
+          <li><span class="cb pending"></span>确认 --font-display 生效</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">改 11 页</div>
+      </div>
+      <div style="padding:14px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--surface-raised)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="width:24px;height:24px;border-radius:50%;background:#4A7DE0;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">4</span>
+          <span style="font-weight:600;font-size:14px">Phase 4 — 组件化</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="cb pending"></span>表格工具栏 → 组件类</li>
+          <li><span class="cb pending"></span>批操作栏 → 组件类</li>
+          <li><span class="cb pending"></span>空状态 → empty-state 类</li>
+          <li><span class="cb pending"></span>分页栏 → card-footer 类</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">改 3 页</div>
+      </div>
+      <div style="padding:14px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--surface-raised)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="width:24px;height:24px;border-radius:50%;background:#4A7DE0;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">5</span>
+          <span style="font-weight:600;font-size:14px">Phase 5 — 表格升级</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="cb pending"></span>表头粘性定位 sticky</li>
+          <li><span class="cb pending"></span>行交互微调</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">改 5 页</div>
+      </div>
+      <div style="padding:14px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--surface-raised)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="width:24px;height:24px;border-radius:50%;background:#4A7DE0;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">6</span>
+          <span style="font-weight:600;font-size:14px">Phase 6 — 微动画</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="cb pending"></span>页面入场 fade-up</li>
+          <li><span class="cb pending"></span>表格条目 stagger</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">改 scaffold.css</div>
+      </div>
+      <div style="padding:14px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--surface-raised)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="width:24px;height:24px;border-radius:50%;background:#666;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">7</span>
+          <span style="font-weight:600;font-size:14px">Phase 7 — assembly 清理</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="cb pending"></span>移除重复全局 CSS</li>
+          <li><span class="cb pending"></span>header 颜色修正</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-tertiary)">改 1 页</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 8: 设计 Token 展示 ===== -->
+  <div class="section">
+    <div class="section-title">
+      设计 Token 全景 <span class="phase">系统</span>
+    </div>
+    <div class="section-desc">统一后的品牌色、语义色、文字色、阴影层级</div>
+    <div class="token-grid">
+      <div class="token-card">
+        <div class="token-name">--brand（品牌色）</div>
+        <div class="token-swatch" style="background:rgb(70,110,227)"></div>
+        <div class="token-value">rgb(70, 110, 227)</div>
+      </div>
+      <div class="token-card">
+        <div class="token-name">--amber（琥珀色）</div>
+        <div class="token-swatch" style="background:oklch(68% 0.16 83)"></div>
+        <div class="token-value">oklch(68% 0.16 83)</div>
+      </div>
+      <div class="token-card">
+        <div class="token-name">--success（成功绿）</div>
+        <div class="token-swatch" style="background:oklch(55% 0.16 155)"></div>
+        <div class="token-value">oklch(55% 0.16 155)</div>
+      </div>
+      <div class="token-card">
+        <div class="token-name">--danger（危险红）</div>
+        <div class="token-swatch" style="background:oklch(52% 0.18 22)"></div>
+        <div class="token-value">oklch(52% 0.18 22)</div>
+      </div>
+      <div class="token-card">
+        <div class="token-name">--warning（警告橙）</div>
+        <div class="token-swatch" style="background:oklch(62% 0.14 75)"></div>
+        <div class="token-value">oklch(62% 0.14 75)</div>
+      </div>
+      <div class="token-card">
+        <div class="token-name">--text-primary</div>
+        <div class="token-swatch" style="background:oklch(18% 0.012 270)"></div>
+        <div class="token-value">oklch(18% 0.012 270)</div>
+      </div>
+      <div class="token-card">
+        <div class="token-name">--text-secondary</div>
+        <div class="token-swatch" style="background:oklch(40% 0.008 260)"></div>
+        <div class="token-value">oklch(40% 0.008 260)</div>
+      </div>
+      <div class="token-card">
+        <div class="token-name">--text-tertiary</div>
+        <div class="token-swatch" style="background:oklch(55% 0.006 250)"></div>
+        <div class="token-value">oklch(55% 0.006 250)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    业务中台装配环境 · 设计美化预览 · 共 7 个 Phase · 12 个页面
+  </div>
+</div>
+</body>
+</html>

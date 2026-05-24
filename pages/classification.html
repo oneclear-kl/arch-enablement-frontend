@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+<script src="../_shared/scaffold.js"></script>
+<title>分级分类管理 — 业务中台装配环境</title>
+<style>
+/* ---- 维度切换栏 ---- */
+.dim-tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.dim-tab{padding:6px 14px;font-size:12px;border-radius:6px;cursor:pointer;border:1px solid var(--border-default);background:var(--surface-raised);color:var(--text-secondary);transition:all .15s;white-space:nowrap}
+.dim-tab:hover{border-color:var(--brand);color:var(--brand)}
+.dim-tab.active{background:var(--brand-subtle);border-color:var(--brand);color:var(--brand);font-weight:600}
+
+/* ---- 目录树 ---- */
+.tree-node{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:4px;cursor:pointer;transition:background .12s;font-size:13px}
+.tree-node:hover{background:var(--surface-hover)}
+.tree-node.selected{background:var(--brand-subtle);color:var(--brand);font-weight:600}
+.tree-node .count-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:999px;background:var(--surface-subtle);color:var(--text-tertiary)}
+.tree-node.selected .count-badge{background:var(--brand);color:#fff}
+.tree-children{padding-left:20px}
+
+/* ---- 成熟度徽标 ---- */
+.maturity-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500}
+.maturity-L1{background:#FFF1F0;color:#FF4D4F}
+.maturity-L2{background:#FFF7E6;color:#FA8C16}
+.maturity-L3{background:#F0F5FF;color:#4A7DE0}
+.maturity-L4{background:#F6FFED;color:#52C41A}
+.maturity-L5{background:#F9F0FF;color:#722ED1}
+
+/* ---- 级别指示条 ---- */
+.level-bar{display:flex;gap:3px;align-items:center}
+.level-dot{width:8px;height:8px;border-radius:50%;background:var(--border-default)}
+.level-dot.filled{background:var(--brand)}
+.level-dot.filled.l2{background:#FA8C16}
+.level-dot.filled.l3{background:#4A7DE0}
+.level-dot.filled.l4{background:#52C41A}
+.level-dot.filled.l5{background:#722ED1}
+
+/* ---- 标签 ---- */
+.kl-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;transition:all .12s}
+.kl-tag.domain{background:var(--brand-subtle);color:var(--brand)}
+.kl-tag.level{background:var(--amber-subtle);color:var(--amber)}
+.kl-tag.scope{background:var(--success-subtle);color:var(--success)}
+.kl-tag.reuse{background:oklch(93% 0.04 240);color:#1890FF}
+.kl-tag.owner{background:oklch(93% 0.04 290);color:#722ED1}
+.kl-tag .remove{cursor:pointer;opacity:.5;font-size:9px}
+.kl-tag .remove:hover{opacity:1}
+
+/* ---- 详情面板 ---- */
+.detail-section-title{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px;padding-bottom:6px;border-bottom:1px solid var(--border-subtle)}
+.detail-row{display:flex;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border-subtle)}
+.detail-row:last-child{border:none}
+.detail-label{width:80px;flex-shrink:0;color:var(--text-tertiary);font-size:12px}
+.detail-value{flex:1;color:var(--text-primary)}
+
+/* ---- 空状态 ---- */
+.empty-state{padding:48px 20px;text-align:center;color:var(--text-tertiary)}
+.empty-state i{font-size:2.5rem;color:var(--border-default);margin-bottom:8px;display:block}
+</style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1">
+    <div class="flex items-center gap-2 mr-6">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div>
+      <span class="text-white font-semibold text-base">业务中台装配环境</span>
+    </div>
+    <nav class="flex items-center gap-0.5">
+      <a href="../index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>首页</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm">
+    <div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div>
+    <div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div>
+    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div>
+    <span class="text-xs">张架构</span>
+  </div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+<main class="flex-1 overflow-y-auto">
+  <div id="breadcrumb"></div>
+  <!-- ====== Page Hero ====== -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Classification &amp; Standardization</div>
+      <h2>分级分类管理</h2>
+      <div class="subtitle">围绕业务域、能力层级、应用范围、复用级别、归属主体等维度，建立中台能力及业务数字化单元的分级分类标准体系</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" onclick="showNewCapability()"><i class="fa-solid fa-plus"></i>新增能力</button>
+      <button class="btn btn-outline" onclick="showTagManager()"><i class="fa-solid fa-tags"></i>标签管理</button>
+    </div>
+  </div>
+  <!-- ====== Page Content ====== -->
+  <div class="page-section anim-fade-up">
+    <!-- 统计概览 -->
+    <div class="grid grid-cols-5 gap-3 mb-4">
+      <div class="stat-card" onclick="filterByDim('all')"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">能力总数</div><div class="stat-value" id="statTotal">0</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-layer-group"></i></div></div></div>
+      <div class="stat-card" onclick="filterByDim('domain')"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">业务域</div><div class="stat-value" id="statDomain">0</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-sitemap"></i></div></div></div>
+      <div class="stat-card" onclick="filterByDim('level')"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">能力层级</div><div class="stat-value" id="statLevel">0</div></div><div class="stat-icon-wrap amber"><i class="fa-solid fa-layer-group"></i></div></div></div>
+      <div class="stat-card" onclick="filterByDim('maturity')"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">成熟度L4+</div><div class="stat-value" style="color:var(--success)" id="statMaturity">0</div></div><div class="stat-icon-wrap green"><i class="fa-solid fa-chart-line"></i></div></div></div>
+      <div class="stat-card" onclick="filterByDim('reuse')"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">高复用(≥3)</div><div class="stat-value" style="color:var(--brand)" id="statReuse">0</div></div><div class="stat-icon-wrap purple"><i class="fa-solid fa-copy"></i></div></div></div>
+    </div>
+
+    <!-- 维度切换 + 搜索工具栏 -->
+    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+      <div class="dim-tabs" id="dimTabs">
+        <div class="dim-tab active" data-dim="domain" onclick="switchDimension('domain',this)"><i class="fa-solid fa-sitemap mr-1"></i>业务域</div>
+        <div class="dim-tab" data-dim="level" onclick="switchDimension('level',this)"><i class="fa-solid fa-layer-group mr-1"></i>能力层级</div>
+        <div class="dim-tab" data-dim="scope" onclick="switchDimension('scope',this)"><i class="fa-solid fa-expand mr-1"></i>应用范围</div>
+        <div class="dim-tab" data-dim="reuse" onclick="switchDimension('reuse',this)"><i class="fa-solid fa-copy mr-1"></i>复用级别</div>
+        <div class="dim-tab" data-dim="owner" onclick="switchDimension('owner',this)"><i class="fa-solid fa-building mr-1"></i>归属主体</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="search-wrap"><i class="fa-solid fa-magnifying-glass text-xs" style="color:var(--text-tertiary)"></i><input type="text" placeholder="搜索能力名称、标签..." class="input" style="border:none;box-shadow:none;width:180px" id="searchInput" oninput="filterCapabilities()"></div>
+        <select class="filter-select" id="maturityFilter" onchange="filterCapabilities()"><option value="">所有成熟度</option><option value="L1">L1 初始级</option><option value="L2">L2 已定义</option><option value="L3">L3 已管理</option><option value="L4">L4 量化管理</option><option value="L5">L5 优化级</option></select>
+        <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fa-solid fa-rotate-right"></i>重置</button>
+      </div>
+    </div>
+
+    <!-- 主体区域：左侧目录树 + 右侧表格 -->
+    <div class="flex gap-4">
+      <!-- 左栏：目录树 -->
+      <div class="w-64 flex-shrink-0 card overflow-hidden">
+        <div class="px-4 py-2.5 border-b flex items-center justify-between" style="border-color:var(--border-subtle)">
+          <span class="text-xs font-semibold" style="color:var(--text-secondary)" id="treeTitle">业务域目录</span>
+          <span class="text-xs" style="color:var(--text-tertiary)" id="treeCount">0 项</span>
+        </div>
+        <div class="p-2 overflow-y-auto" style="max-height:420px" id="treeContainer">
+          <div class="empty-state"><i class="fa-solid fa-tree"></i><div>加载中...</div></div>
+        </div>
+      </div>
+
+      <!-- 右栏：能力列表 + 详情 -->
+      <div class="flex-1">
+        <!-- 能力列表 -->
+        <div class="card overflow-hidden">
+          <div style="overflow-x:auto">
+          <table class="data-table"><thead><tr>
+            <th style="width:40px">#</th><th style="min-width:140px">能力名称</th><th style="width:80px">业务域</th><th style="width:70px">层级</th><th style="width:70px">范围</th><th style="width:65px">复用</th><th style="width:80px">成熟度</th><th style="width:60px">归属</th><th style="width:100px">操作</th>
+          </tr></thead><tbody id="capBody"></tbody></table>
+          </div>
+          <div id="noResult" class="empty-state" style="display:none"><i class="fa-solid fa-inbox"></i><div class="msg">暂无匹配的能力记录</div></div>
+          <div class="card-footer">
+            <span class="info" id="pageInfo">共 0 条记录</span>
+            <div class="flex items-center gap-1" id="pageBtns"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ===== 详情滑入面板（替换内联卡片） ===== -->
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-panel" onclick="event.stopPropagation()" id="detailPanel"></div>
+</div>
+
+<!-- ===== 新增/编辑能力弹窗 ===== -->
+<div class="modal-overlay" id="capModal"><div class="modal-box wide" id="capModalContent"></div></div>
+
+<!-- ===== 标签管理弹窗 ===== -->
+<div class="modal-overlay" id="tagModal"><div class="modal-box" id="tagModalContent"></div></div>
+
+<script>
+// ===== 维度定义 =====
+var DIMENSIONS = {
+  domain: { label: '业务域', icon: 'fa-sitemap', tree: ['油气生产经营','油气新能源','炼化新材料','销售','天然气销售','海外油气','国际贸易','油田技术服务','工程建设','装备制造','运输物流'] },
+  level:  { label: '能力层级', icon: 'fa-layer-group', tree: ['L1','L2','L3','L4','L5'], labels: {'L1':'基础能力','L2':'通用能力','L3':'核心能力','L4':'战略能力','L5':'生态能力'} },
+  scope:  { label: '应用范围', icon: 'fa-expand', tree: ['单业务域','多业务域','跨板块','全集团','对外赋能'] },
+  reuse:  { label: '复用级别', icon: 'fa-copy', tree: ['R1','R2','R3','R4','R5'], labels: {'R1':'专用','R2':'有限复用','R3':'可复用','R4':'高复用','R5':'通用'} },
+  owner:  { label: '归属主体', icon: 'fa-building', tree: ['数字化中心','油气生产部','炼化事业部','销售公司','研究院','信息中心'] }
+};
+
+// ===== 能力数据 =====
+var capabilities = [
+  { id:'CAP-001', name:'油井数据采集', domain:'油气生产经营', level:'L1', scope:'单业务域', reuse:'R3', owner:'数字化中心', desc:'实时采集油井生产数据，支持多种传感器协议和OPC UA/Modbus通信', reuseRate:78, stability:85, maturity:'L3', tags:['数据采集','IoT','实时'], icon:'fa-oil-well', history:[{time:'2026-04-10',event:'成熟度评估 L3',user:'张架构'},{time:'2026-04-01',event:'归口绑定 数字化中心',user:'系统'}] },
+  { id:'CAP-002', name:'压力传感器读取', domain:'油气生产经营', level:'L1', scope:'单业务域', reuse:'R4', owner:'数字化中心', desc:'读取管网压力传感器实时数据，支持HART协议和4-20mA信号', reuseRate:85, stability:92, maturity:'L4', tags:['数据采集','传感器','HART'], icon:'fa-gauge', history:[{time:'2026-04-15',event:'成熟度评估 L4',user:'张架构'}] },
+  { id:'CAP-003', name:'振动传感器采集', domain:'油气新能源', level:'L1', scope:'单业务域', reuse:'R3', owner:'信息中心', desc:'采集设备振动数据，支持加速度、速度、位移测量', reuseRate:65, stability:78, maturity:'L3', tags:['数据采集','振动','预测维护'], icon:'fa-wave-square', history:[{time:'2026-04-12',event:'成熟度评估 L3',user:'赵工程'}] },
+  { id:'CAP-004', name:'温度传感器采集', domain:'油气新能源', level:'L1', scope:'多业务域', reuse:'R4', owner:'信息中心', desc:'采集设备表面和环境温度，支持热电偶、热电阻', reuseRate:82, stability:90, maturity:'L4', tags:['数据采集','温度','IoT'], icon:'fa-thermometer-half', history:[{time:'2026-04-14',event:'成熟度评估 L4',user:'赵工程'}] },
+  { id:'CAP-005', name:'数据清洗与过滤', domain:'数据服务', level:'L2', scope:'多业务域', reuse:'R4', owner:'数字化中心', desc:'按规则对数据进行清洗、去重、格式转换和异常过滤', reuseRate:80, stability:88, maturity:'L4', tags:['数据处理','清洗','质量'], icon:'fa-filter', history:[{time:'2026-04-13',event:'成熟度评估 L4',user:'李业务'}] },
+  { id:'CAP-006', name:'数据查询服务', domain:'数据服务', level:'L2', scope:'多业务域', reuse:'R5', owner:'数字化中心', desc:'从数据平台查询历史与实时数据，支持复杂查询条件和聚合', reuseRate:92, stability:95, maturity:'L5', tags:['数据查询','API','通用'], icon:'fa-database', history:[{time:'2026-04-16',event:'成熟度评估 L5',user:'李业务'}] },
+  { id:'CAP-007', name:'趋势分析', domain:'炼化新材料', level:'L3', scope:'单业务域', reuse:'R3', owner:'炼化事业部', desc:'时间序列数据的趋势分析与可视化，支持多维度对比', reuseRate:72, stability:80, maturity:'L3', tags:['分析','趋势','可视化'], icon:'fa-chart-line', history:[{time:'2026-04-11',event:'成熟度评估 L3',user:'孙分析'}] },
+  { id:'CAP-008', name:'阈值告警', domain:'炼化新材料', level:'L3', scope:'多业务域', reuse:'R4', owner:'炼化事业部', desc:'参数超过阈值时自动触发告警，支持多级告警和升级策略', reuseRate:78, stability:85, maturity:'L4', tags:['告警','阈值','通知'], icon:'fa-triangle-exclamation', history:[{time:'2026-04-15',event:'成熟度评估 L4',user:'王技术'}] },
+  { id:'CAP-009', name:'压力预测模型', domain:'装备制造', level:'L4', scope:'单业务域', reuse:'R2', owner:'研究院', desc:'基于LSTM神经网络预测管网压力变化趋势', reuseRate:45, stability:62, maturity:'L2', tags:['AI','预测','LSTM'], icon:'fa-brain', history:[{time:'2026-04-09',event:'成熟度评估 L2',user:'赵工程'}] },
+  { id:'CAP-010', name:'设备健康度评估', domain:'装备制造', level:'L4', scope:'跨板块', reuse:'R3', owner:'研究院', desc:'综合多维度数据评估设备运行健康状态', reuseRate:68, stability:75, maturity:'L3', tags:['AI','健康评估','设备'], icon:'fa-heartbeat', history:[{time:'2026-04-13',event:'成熟度评估 L3',user:'赵工程'}] },
+  { id:'CAP-011', name:'报表自动生成', domain:'销售', level:'L2', scope:'单业务域', reuse:'R4', owner:'销售公司', desc:'自动生成日/周/月生产销售报表，支持Excel/PDF导出', reuseRate:85, stability:90, maturity:'L4', tags:['报表','导出','自动化'], icon:'fa-file-export', history:[{time:'2026-04-14',event:'成熟度评估 L4',user:'孙分析'}] },
+  { id:'CAP-012', name:'应急指挥调度', domain:'工程建设', level:'L5', scope:'全集团', reuse:'R2', owner:'数字化中心', desc:'突发事件快速响应，资源调度与协同指挥', reuseRate:35, stability:55, maturity:'L2', tags:['应急','调度','协同'], icon:'fa-tower-broadcast', history:[{time:'2026-04-08',event:'成熟度评估 L2',user:'郑安全'}] },
+  { id:'CAP-013', name:'能耗统计分析', domain:'国际贸易', level:'L2', scope:'跨板块', reuse:'R3', owner:'信息中心', desc:'统计分析能耗数据，生成节能建议和趋势报告', reuseRate:62, stability:78, maturity:'L3', tags:['能耗','分析','报表'], icon:'fa-bolt', history:[{time:'2026-04-12',event:'成熟度评估 L3',user:'孙分析'}] },
+  { id:'CAP-014', name:'模型自学习优化', domain:'装备制造', level:'L5', scope:'跨板块', reuse:'R2', owner:'研究院', desc:'模型自动重训练、A/B测试和自动回滚', reuseRate:28, stability:48, maturity:'L2', tags:['AI','MLOps','自动化'], icon:'fa-sync-alt', history:[{time:'2026-04-10',event:'成熟度评估 L2',user:'赵工程'}] },
+  { id:'CAP-015', name:'数据产品可用性分析', domain:'数据服务', level:'L3', scope:'多业务域', reuse:'R3', owner:'数字化中心', desc:'分析数据产品的可用性、时效性和完整性', reuseRate:70, stability:82, maturity:'L3', tags:['数据治理','质量','监控'], icon:'fa-chart-pie', history:[{time:'2026-04-11',event:'成熟度评估 L3',user:'李业务'}] },
+  { id:'CAP-016', name:'生产调度优化', domain:'海外油气', level:'L4', scope:'单业务域', reuse:'R2', owner:'油气生产部', desc:'利用AI算法优化生产调度方案，提升产能效率', reuseRate:38, stability:58, maturity:'L2', tags:['AI','优化','调度'], icon:'fa-route', history:[{time:'2026-04-07',event:'成熟度评估 L2',user:'李业务'}] },
+  { id:'CAP-017', name:'运维工单管理', domain:'油田技术服务', level:'L2', scope:'单业务域', reuse:'R3', owner:'信息中心', desc:'维保工单创建、分派、跟踪和闭环管理', reuseRate:75, stability:83, maturity:'L3', tags:['工单','运维','流程'], icon:'fa-clipboard-check', history:[{time:'2026-04-14',event:'成熟度评估 L3',user:'周运维'}] },
+  { id:'CAP-018', name:'生产数据入湖质量分析', domain:'运输物流', level:'L3', scope:'跨板块', reuse:'R3', owner:'数字化中心', desc:'生产数据入湖质量监控、异常检测和修复建议', reuseRate:60, stability:75, maturity:'L3', tags:['数据湖','质量','监控'], icon:'fa-water', history:[{time:'2026-04-12',event:'成熟度评估 L3',user:'李业务'}] },
+  { id:'CAP-019', name:'井口数据汇聚', domain:'油气生产经营', level:'L1', scope:'单业务域', reuse:'R3', owner:'数字化中心', desc:'将多口油井的采集数据统一汇聚与标准化', reuseRate:72, stability:80, maturity:'L3', tags:['数据汇聚','标准化'], icon:'fa-database', history:[{time:'2026-04-15',event:'成熟度评估 L3',user:'张架构'}] },
+  { id:'CAP-020', name:'智能巡检调度', domain:'油气新能源', level:'L3', scope:'多业务域', reuse:'R2', owner:'信息中心', desc:'基于AI的巡检路线优化与任务自动分配', reuseRate:52, stability:68, maturity:'L2', tags:['AI','巡检','调度'], icon:'fa-route', history:[{time:'2026-04-11',event:'成熟度评估 L2',user:'赵工程'}] },
+  { id:'CAP-021', name:'炼化工艺仿真', domain:'炼化新材料', level:'L4', scope:'单业务域', reuse:'R2', owner:'炼化事业部', desc:'炼化工艺流程的数字孪生仿真与参数优化', reuseRate:42, stability:60, maturity:'L2', tags:['仿真','数字孪生','炼化'], icon:'fa-flask', history:[{time:'2026-04-09',event:'成熟度评估 L2',user:'孙分析'}] },
+  { id:'CAP-022', name:'客户画像分析', domain:'销售', level:'L3', scope:'单业务域', reuse:'R3', owner:'销售公司', desc:'构建客户多维度画像，支撑精准营销与产品推荐', reuseRate:68, stability:75, maturity:'L3', tags:['画像','分析','营销'], icon:'fa-user-group', history:[{time:'2026-04-13',event:'成熟度评估 L3',user:'孙分析'}] },
+  { id:'CAP-023', name:'天然气计量管理', domain:'天然气销售', level:'L2', scope:'单业务域', reuse:'R3', owner:'油气生产部', desc:'天然气贸易计量数据采集、计算与结算管理', reuseRate:70, stability:82, maturity:'L3', tags:['计量','天然气','贸易'], icon:'fa-scale-balanced', history:[{time:'2026-04-14',event:'成熟度评估 L3',user:'李业务'}] },
+  { id:'CAP-024', name:'海外产量预测', domain:'海外油气', level:'L4', scope:'单业务域', reuse:'R2', owner:'油气生产部', desc:'基于地质建模和机器学习的海外区块产量预测', reuseRate:35, stability:50, maturity:'L2', tags:['AI','预测','海外'], icon:'fa-globe', history:[{time:'2026-04-08',event:'成熟度评估 L2',user:'李业务'}] },
+  { id:'CAP-025', name:'国际贸易清关管理', domain:'国际贸易', level:'L2', scope:'单业务域', reuse:'R2', owner:'信息中心', desc:'进出口贸易合同、报关、清关全流程管理', reuseRate:48, stability:70, maturity:'L2', tags:['贸易','清关','流程'], icon:'fa-ship', history:[{time:'2026-04-10',event:'成熟度评估 L2',user:'孙分析'}] },
+  { id:'CAP-026', name:'油田技术服务管理', domain:'油田技术服务', level:'L2', scope:'单业务域', reuse:'R3', owner:'油气生产部', desc:'油田技术服务的合同、队伍、工作量结算管理', reuseRate:65, stability:78, maturity:'L3', tags:['服务','合同','结算'], icon:'fa-hard-hat', history:[{time:'2026-04-12',event:'成熟度评估 L3',user:'周运维'}] },
+  { id:'CAP-027', name:'工程项目进度管理', domain:'工程建设', level:'L2', scope:'单业务域', reuse:'R3', owner:'信息中心', desc:'工程建设项目的计划编制、进度跟踪与预警', reuseRate:72, stability:80, maturity:'L3', tags:['工程','进度','项目'], icon:'fa-building', history:[{time:'2026-04-13',event:'成熟度评估 L3',user:'郑安全'}] },
+  { id:'CAP-028', name:'装备远程诊断', domain:'装备制造', level:'L4', scope:'跨板块', reuse:'R3', owner:'研究院', desc:'对油气装备进行远程状态监测与故障诊断', reuseRate:62, stability:72, maturity:'L3', tags:['装备','诊断','远程'], icon:'fa-microchip', history:[{time:'2026-04-11',event:'成熟度评估 L3',user:'赵工程'}] },
+  { id:'CAP-029', name:'物流运输调度', domain:'运输物流', level:'L2', scope:'跨板块', reuse:'R3', owner:'信息中心', desc:'油气产品运输的车辆调度、路径优化与在途监控', reuseRate:68, stability:75, maturity:'L3', tags:['物流','调度','运输'], icon:'fa-truck', history:[{time:'2026-04-14',event:'成熟度评估 L3',user:'周运维'}] },
+  { id:'CAP-030', name:'数据治理平台', domain:'数据服务', level:'L3', scope:'全集团', reuse:'R4', owner:'数字化中心', desc:'全集团数据标准、元数据、数据质量统一治理平台', reuseRate:82, stability:88, maturity:'L4', tags:['数据治理','平台','标准'], icon:'fa-server', history:[{time:'2026-04-16',event:'成熟度评估 L4',user:'张架构'}] },
+  { id:'CAP-031', name:'身份权限管理', domain:'数据服务', level:'L1', scope:'全集团', reuse:'R5', owner:'数字化中心', desc:'统一身份认证、权限管理与访问控制', reuseRate:95, stability:98, maturity:'L5', tags:['安全','权限','认证'], icon:'fa-shield-halved', history:[{time:'2026-04-17',event:'成熟度评估 L5',user:'张架构'}] },
+  { id:'CAP-032', name:'消息通知中心', domain:'数据服务', level:'L1', scope:'全集团', reuse:'R5', owner:'数字化中心', desc:'多渠道消息推送（企微/短信/邮件/电话）统一管理', reuseRate:90, stability:93, maturity:'L5', tags:['通知','消息','渠道'], icon:'fa-bell', history:[{time:'2026-04-16',event:'成熟度评估 L5',user:'张架构'}] },
+  { id:'CAP-033', name:'工作流引擎', domain:'数据服务', level:'L2', scope:'全集团', reuse:'R5', owner:'数字化中心', desc:'可视化工作流编排引擎，支持审批、任务、业务流程', reuseRate:88, stability:92, maturity:'L4', tags:['工作流','引擎','BPM'], icon:'fa-diagram-project', history:[{time:'2026-04-15',event:'成熟度评估 L4',user:'张架构'}] },
+  { id:'CAP-034', name:'统一搜索服务', domain:'数据服务', level:'L1', scope:'全集团', reuse:'R5', owner:'数字化中心', desc:'全集团多数据源统一搜索引擎，支持全文检索与聚合', reuseRate:85, stability:90, maturity:'L4', tags:['搜索','引擎','全文检索'], icon:'fa-magnifying-glass', history:[{time:'2026-04-14',event:'成熟度评估 L4',user:'张架构'}] },
+  { id:'CAP-035', name:'低代码表单引擎', domain:'数据服务', level:'L2', scope:'跨板块', reuse:'R4', owner:'数字化中心', desc:'拖拽式表单构建引擎，支持复杂布局与业务规则绑定', reuseRate:78, stability:82, maturity:'L3', tags:['低代码','表单','引擎'], icon:'fa-table', history:[{time:'2026-04-13',event:'成熟度评估 L3',user:'张架构'}] },
+  { id:'CAP-036', name:'报表分析中心', domain:'数据服务', level:'L2', scope:'全集团', reuse:'R4', owner:'数字化中心', desc:'自助式报表设计与分析平台，支持多数据源与可视化', reuseRate:80, stability:85, maturity:'L4', tags:['报表','分析','BI'], icon:'fa-chart-bar', history:[{time:'2026-04-14',event:'成熟度评估 L4',user:'孙分析'}] },
+  { id:'CAP-037', name:'数据API网关', domain:'数据服务', level:'L1', scope:'全集团', reuse:'R5', owner:'数字化中心', desc:'统一数据API网关，支持限流、鉴权、路由与监控', reuseRate:92, stability:95, maturity:'L5', tags:['API','网关','数据服务'], icon:'fa-plug', history:[{time:'2026-04-17',event:'成熟度评估 L5',user:'张架构'}] },
+  { id:'CAP-038', name:'AI模型服务平台', domain:'数据服务', level:'L4', scope:'跨板块', reuse:'R3', owner:'研究院', desc:'机器学习模型训练、部署、推理一体化服务平台', reuseRate:58, stability:65, maturity:'L2', tags:['AI','模型','平台'], icon:'fa-robot', history:[{time:'2026-04-10',event:'成熟度评估 L2',user:'赵工程'}] },
+  { id:'CAP-039', name:'日志审计中心', domain:'数据服务', level:'L2', scope:'全集团', reuse:'R4', owner:'数字化中心', desc:'系统操作日志采集、存储、审计与追溯', reuseRate:82, stability:90, maturity:'L4', tags:['日志','审计','安全'], icon:'fa-clipboard-list', history:[{time:'2026-04-15',event:'成熟度评估 L4',user:'张架构'}] },
+  { id:'CAP-040', name:'灾备管理中心', domain:'数据服务', level:'L3', scope:'全集团', reuse:'R3', owner:'数字化中心', desc:'业务系统灾备策略管理、演练与切换自动化', reuseRate:55, stability:72, maturity:'L3', tags:['灾备','高可用','运维'], icon:'fa-shield', history:[{time:'2026-04-12',event:'成熟度评估 L3',user:'张架构'}] },
+
+];
+
+// ===== 状态变量 =====
+var currentDim = 'domain';
+var currentTreeFilter = '';
+var currentDetail = null;
+var activeFilter = null;
+var currentPage = 1;
+var pageSize = 10;
+
+// ===== 工具函数 =====
+function toast(msg,type){Scaffold.showToast(msg,type);}
+function closeModal(){Scaffold.hideModal('capModal');Scaffold.hideModal('tagModal');}
+
+// ===== 成熟度辅助 =====
+function maturityLabel(m){var l={'L1':'初始级','L2':'已定义','L3':'已管理','L4':'量化管理','L5':'优化级'};return m+' '+ (l[m]||'');}
+function maturityClass(m){return 'maturity-badge maturity-'+m;}
+function reuseLevel(r){if(r>=85)return 'R5';if(r>=70)return 'R4';if(r>=55)return 'R3';if(r>=40)return 'R2';return 'R1';}
+function reuseClass(r){return 'level-dot filled l'+r.substring(1);}
+
+// ===== 统计更新 =====
+function updateStats(){
+  document.getElementById('statTotal').textContent=capabilities.length;
+  var doms={};domains().forEach(function(d){doms[d]=true;});
+  document.getElementById('statDomain').textContent=Object.keys(doms).length;
+  var lvls={};capabilities.forEach(function(c){lvls[c.level]=true;});
+  document.getElementById('statLevel').textContent=Object.keys(lvls).length;
+  document.getElementById('statMaturity').textContent=capabilities.filter(function(c){return c.maturity>='L4';}).length;
+  document.getElementById('statReuse').textContent=capabilities.filter(function(c){return parseInt(c.reuse.substring(1))>=3;}).length;
+}
+function domains(){var d={};capabilities.forEach(function(c){d[c.domain]=true;});return Object.keys(d).sort();}
+
+// ===== 维度切换 =====
+function switchDimension(dim,el){
+  document.querySelectorAll('.dim-tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  currentDim=dim;
+  currentTreeFilter='';
+  renderTree();
+  filterCapabilities();
+}
+
+// ===== 目录树渲染 =====
+function renderTree(){
+  var dim=DIMENSIONS[currentDim];
+  document.getElementById('treeTitle').textContent=dim.label+'目录';
+  if(!dim||!dim.tree){
+    document.getElementById('treeContainer').innerHTML='<div class="empty-state"><i class="fa-solid fa-tree"></i><div>暂无数据</div></div>';
+    document.getElementById('treeCount').textContent='0 项';
+    return;
+  }
+  var cats=dim.tree;
+  var h='';
+  for(var i=0;i<cats.length;i++){
+    var count=capabilities.filter(function(c){return c[currentDim]===cats[i];}).length;
+    var sel=cats[i]===currentTreeFilter?' selected':'';
+    h+='<div class="tree-node'+sel+'" data-val="'+cats[i]+'"><i class="fa-solid '+(sel?'fa-folder-open':'fa-folder')+' text-xs" style="color:var(--brand)"></i><span>'+(dim.labels?cats[i]+' '+dim.labels[cats[i]]:cats[i])+'</span><span class="count-badge">'+count+'</span></div>';
+  }
+  document.getElementById('treeContainer').innerHTML=h||'<div class="empty-state"><i class="fa-solid fa-tree"></i><div>暂无分类</div></div>';
+  document.getElementById('treeCount').textContent=cats.length+' 项';
+  // 绑定树节点点击（事件委托）
+  var tc=document.getElementById('treeContainer');
+  tc.onclick=function(e){
+    var el=e.target.closest('.tree-node');
+    if(!el)return;
+    selectTreeNode(el.getAttribute('data-val'),el);
+  };
+}
+function selectTreeNode(val,el){
+  document.querySelectorAll('.tree-node').forEach(function(n){n.classList.remove('selected');});
+  el.classList.add('selected');
+  currentTreeFilter=(currentTreeFilter===val)?'':val;
+  if(!currentTreeFilter)el.classList.remove('selected');
+  currentPage=1;
+  filterCapabilities();
+}
+
+// ===== 筛选与搜索 =====
+function getFiltered(){
+  var kw=document.getElementById('searchInput').value.trim().toLowerCase();
+  var mat=document.getElementById('maturityFilter').value;
+  var result=capabilities.filter(function(c){
+    if(currentTreeFilter&&c[currentDim]!==currentTreeFilter)return false;
+    if(activeFilter==='domain'&&!c.domain)return false;
+    if(activeFilter==='maturity'&&c.maturity<'L4')return false;
+    if(activeFilter==='reuse'&&parseInt(c.reuse.substring(1))<3)return false;
+    if(mat&&c.maturity!==mat)return false;
+    if(kw&&c.name.toLowerCase().indexOf(kw)===-1&&c.desc.toLowerCase().indexOf(kw)===-1&&c.tags.join(' ').toLowerCase().indexOf(kw)===-1)return false;
+    return true;
+  });
+  return result;
+}
+function filterCapabilities(){
+  var filtered=getFiltered();
+  var total=filtered.length;
+  var tp=Math.max(1,Math.ceil(total/pageSize));
+  if(currentPage>tp)currentPage=tp;
+  var start=(currentPage-1)*pageSize;
+  var pd=filtered.slice(start,start+pageSize);
+  renderTable(pd,total);
+}
+function filterByDim(type){
+  activeFilter=(activeFilter===type)?null:type;
+  currentPage=1;
+  filterCapabilities();
+  // 高亮
+  document.querySelectorAll('.stat-card .stat-icon-wrap').forEach(function(w){w.parentElement.parentElement.classList.remove('active');});
+  if(activeFilter&&activeFilter!=='all'){
+    var map={domain:0,level:1,maturity:3,reuse:4};
+    var idx=map[type];
+    if(idx!==undefined){
+      var cards=document.querySelectorAll('.stat-card');
+      if(cards[idx])cards[idx].classList.add('active');
+    }
+  }
+}
+function resetFilters(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('maturityFilter').value='';
+  activeFilter=null;
+  currentTreeFilter='';
+  currentPage=1;
+  filterCapabilities();
+  renderTree();
+}
+
+// ===== 表格渲染 =====
+function renderTable(data,total){
+  var h='';
+  for(var i=0;i<data.length;i++){
+    var c=data[i];
+    h+='<tr class="cursor-pointer" onclick="showDetail(\''+c.id+'\')">';
+    h+='<td style="font-size:11px;color:var(--text-tertiary)">'+((currentPage-1)*pageSize+i+1)+'</td>';
+    h+='<td><div style="display:flex;align-items:center;gap:6px"><div class="w-6 h-6 rounded flex items-center justify-center" style="background:var(--brand-subtle);color:var(--brand);font-size:10px"><i class="fa-solid '+c.icon+'"></i></div><span style="font-weight:500;font-size:13px;color:var(--text-primary)">'+c.name+'</span></div></td>';
+    h+='<td><span class="kl-tag domain" style="font-size:10px;padding:1px 6px">'+c.domain+'</span></td>';
+    h+='<td><span class="kl-tag level" style="font-size:10px;padding:1px 6px">'+c.level+'</span></td>';
+    h+='<td><span class="kl-tag scope" style="font-size:10px;padding:1px 6px">'+c.scope+'</span></td>';
+    h+='<td><span class="kl-tag reuse" style="font-size:10px;padding:1px 6px">'+c.reuse+'</span></td>';
+    h+='<td><span class="'+maturityClass(c.maturity)+'" style="font-size:10px;padding:1px 6px">'+c.maturity+'</span></td>';
+    h+='<td><span class="kl-tag owner" style="font-size:10px;padding:1px 6px">'+c.owner+'</span></td>';
+    h+='<td><a href="javascript:void(0)" class="btn-text" onclick="event.stopPropagation();showDetail(\''+c.id+'\')">详情</a><a href="javascript:void(0)" class="btn-text" onclick="event.stopPropagation();editCapability(\''+c.id+'\')">编辑</a></td>';
+    h+='</tr>';
+  }
+  document.getElementById('capBody').innerHTML=h;
+  var nr=document.getElementById('noResult');
+  if(data.length===0){nr.style.display='block';}else{nr.style.display='none';}
+  document.getElementById('pageInfo').textContent='共 '+total+' 条记录';
+  renderPagination(total);
+}
+function renderPagination(total){
+  var tp=Math.max(1,Math.ceil(total/pageSize));
+  var ph='';
+  ph+='<button class="px-2 py-1 text-xs border rounded" style="border-color:var(--border-default);color:'+(currentPage>1?'var(--text-secondary)':'var(--text-tertiary)')+'" onclick="goPage('+Math.max(1,currentPage-1)+')" '+(currentPage<=1?'disabled':'')+'><i class="fa-solid fa-chevron-left"></i></button>';
+  for(var p=Math.max(1,currentPage-2);p<=Math.min(tp,currentPage+2);p++){
+    if(p===currentPage)ph+='<button class="px-2.5 py-1 text-xs rounded text-white" style="background:var(--brand)">'+p+'</button>';
+    else ph+='<button class="px-2.5 py-1 text-xs border rounded" style="border-color:var(--border-default)" onclick="goPage('+p+')">'+p+'</button>';
+  }
+  ph+='<button class="px-2 py-1 text-xs border rounded" style="border-color:var(--border-default);color:'+(currentPage<tp?'var(--text-secondary)':'var(--text-tertiary)')+'" onclick="goPage('+Math.min(tp,currentPage+1)+')" '+(currentPage>=tp?'disabled':'')+'><i class="fa-solid fa-chevron-right"></i></button>';
+  document.getElementById('pageBtns').innerHTML=ph;
+}
+function goPage(p){currentPage=p;filterCapabilities();}
+
+// ===== 详情面板（滑入式） =====
+function showDetail(id){
+  var c=capabilities.find(function(x){return x.id===id;});
+  if(!c)return;
+  currentDetail=c;
+  var dimLabel=function(k,v){var d=DIMENSIONS[k];if(d&&d.labels&&d.labels[v])return v+' '+d.labels[v];return v;};
+  var rl=parseInt(c.reuse.substring(1));
+  var rb='';for(var i=1;i<=5;i++){rb+='<span class="level-dot'+(i<=rl?' filled':'')+'"></span>';}
+  var sl=Math.round(c.stability/20);
+  var sb='';for(var i=1;i<=5;i++){sb+='<span class="level-dot'+(i<=sl?' filled':'')+'"></span>';}
+  var th='';for(var t=0;t<c.tags.length;t++){th+='<span class="kl-tag domain" style="background:var(--brand-subtle);color:var(--brand);margin:2px"><i class="fa-solid fa-tag" style="font-size:9px"></i>'+c.tags[t]+'</span>';}
+  var hh='';if(c.history)for(var h=0;h<c.history.length;h++){hh+='<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border-subtle)"><span style="color:var(--text-tertiary);flex-shrink:0;font-size:11px">'+c.history[h].time+'</span><span style="font-size:12px">'+c.history[h].event+'</span><span style="color:var(--text-tertiary);margin-left:auto;font-size:11px">'+c.history[h].user+'</span></div>';}
+  var h='';
+  h+='<div class="detail-header"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--brand-subtle);color:var(--brand)"><i class="fa-solid '+c.icon+'"></i></div><div><div class="text-sm font-semibold" style="color:var(--text-primary)">'+c.name+'</div><div style="font-size:11px;color:var(--text-tertiary)">'+c.id+'</div></div></div><div class="modal-close" onclick="closeDetail()"><i class="fa-solid fa-xmark"></i></div></div>';
+  h+='<div class="detail-body">';
+  h+='<div class="detail-section-title"><i class="fa-solid fa-tag"></i>基础信息</div>';
+  h+='<div class="detail-row"><span class="detail-label">描述</span><span class="detail-value">'+c.desc+'</span></div>';
+  h+='<div class="detail-row"><span class="detail-label">业务域</span><span class="detail-value"><span class="kl-tag domain">'+c.domain+'</span></span></div>';
+  h+='<div class="detail-row"><span class="detail-label">能力层级</span><span class="detail-value"><span class="kl-tag level">'+dimLabel('level',c.level)+'</span></span></div>';
+  h+='<div class="detail-row"><span class="detail-label">应用范围</span><span class="detail-value"><span class="kl-tag scope">'+c.scope+'</span></span></div>';
+  h+='<div class="detail-row"><span class="detail-label">归属主体</span><span class="detail-value"><span class="kl-tag owner">'+c.owner+'</span></span></div>';
+  h+='<div style="margin:12px 0" class="detail-section-title"><i class="fa-solid fa-chart-simple"></i>评估指标</div>';
+  h+='<div class="detail-row"><span class="detail-label">复用级别</span><span class="detail-value"><span class="level-bar">'+rb+'</span> <span style="margin-left:6px;font-size:12px;color:var(--text-tertiary)">'+c.reuse+'</span></span></div>';
+  h+='<div class="detail-row"><span class="detail-label">复用率</span><span class="detail-value" style="font-weight:600">'+c.reuseRate+'%</span></div>';
+  h+='<div class="detail-row"><span class="detail-label">稳定性</span><span class="detail-value"><span class="level-bar">'+sb+'</span> <span style="margin-left:6px;font-size:12px;color:var(--text-tertiary)">'+c.stability+'%</span></span></div>';
+  h+='<div class="detail-row"><span class="detail-label">成熟度</span><span class="detail-value"><span class="'+maturityClass(c.maturity)+'">'+maturityLabel(c.maturity)+'</span></span></div>';
+  h+='<div style="margin:12px 0" class="detail-section-title"><i class="fa-solid fa-tags"></i>标签</div>';
+  h+='<div style="display:flex;flex-wrap:wrap">'+(th||'<span style="color:var(--text-tertiary);font-size:12px">暂无标签</span>')+'</div>';
+  h+='<div style="margin:12px 0" class="detail-section-title"><i class="fa-solid fa-clock"></i>评估记录</div>';
+  h+='<div>'+(hh||'<span style="color:var(--text-tertiary);font-size:12px">暂无评估记录</span>')+'</div>';
+  h+='</div>';
+  h+='<div style="padding:12px 18px;border-top:1px solid var(--border-subtle);display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="editCapability(\''+c.id+'\')"><i class="fa-solid fa-pen"></i>编辑</button><button class="btn btn-sm" style="background:var(--danger);color:#fff" onclick="deleteCapability()"><i class="fa-solid fa-trash"></i>删除</button></div>';
+  document.getElementById('detailPanel').innerHTML=h;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('show');}
+function editCapability(id){toast('编辑功能开发中...','info');}
+function deleteCapability(){if(!currentDetail)return;var self=currentDetail;Scaffold.showConfirm('确定删除「'+self.name+'」？删除后不可恢复。','删除确认',function(ok){if(ok){capabilities=capabilities.filter(function(c){return c.id!==self.id;});currentDetail=null;closeDetail();updateStats();filterCapabilities();toast('已删除','success');}});}
+
+// ===== 新增能力弹窗 =====
+function showNewCapability(){
+  var domains=['油气生产经营','油气新能源','炼化新材料','销售','天然气销售','海外油气','国际贸易','油田技术服务','工程建设','装备制造','运输物流'];
+  var levels=['L1 基础能力','L2 通用能力','L3 核心能力','L4 战略能力','L5 生态能力'];
+  var scopes=['单业务域','多业务域','跨板块','全集团','对外赋能'];
+  var owners=['数字化中心','油气生产部','炼化事业部','销售公司','研究院','信息中心'];
+  var h='<div class="modal-header"><h3>新增中台能力</h3><div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div></div>';
+  h+='<div class="modal-body">';
+  h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-tag"></i>基础信息</div>';
+  h+='<div class="form-group"><label><span class="req">*</span>能力名称</label><input type="text" class="input" id="fName" placeholder="请输入能力名称"></div>';
+  h+='<div class="form-row"><div class="form-group"><label><span class="req">*</span>业务域</label><select class="filter-select" id="fDomain">'+domains.map(function(d){return '<option>'+d+'</option>';}).join('')+'</select></div>';
+  h+='<div class="form-group"><label><span class="req">*</span>能力层级</label><select class="filter-select" id="fLevel">'+levels.map(function(l){return '<option>'+l+'</option>';}).join('')+'</select></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label>应用范围</label><select class="filter-select" id="fScope">'+scopes.map(function(s){return '<option>'+s+'</option>';}).join('')+'</select></div>';
+  h+='<div class="form-group"><label>归属主体</label><select class="filter-select" id="fOwner">'+owners.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div></div>';
+  h+='<div class="form-group"><label>描述</label><textarea class="textarea" id="fDesc" placeholder="描述该能力的业务功能和价值"></textarea></div>';
+  h+='</div>';
+  h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-tags"></i>标签</div>';
+  h+='<div class="form-group"><label>标签（逗号分隔）</label><input type="text" class="input" id="fTags" placeholder="如: 数据采集,IoT,实时"></div>';
+  h+='</div>';
+  h+='</div>';
+  h+='<div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveCapability()"><i class="fa-solid fa-check"></i>创建能力</button></div>';
+  document.getElementById('capModalContent').innerHTML=h;
+  Scaffold.showModal('capModal');
+}
+function saveCapability(){
+  var name=document.getElementById('fName').value.trim();
+  if(!name){toast('请输入能力名称','warning');return;}
+  var max=0;capabilities.forEach(function(c){var n=parseInt(c.id.split('-')[1]);if(n>max)max=n;});
+  capabilities.push({id:'CAP-'+String(max+1).padStart(3,'0'),name:name,domain:document.getElementById('fDomain').value,level:document.getElementById('fLevel').value.split(' ')[0],scope:document.getElementById('fScope').value,reuse:'R1',owner:document.getElementById('fOwner').value,desc:document.getElementById('fDesc').value||'',reuseRate:0,stability:0,maturity:'L1',tags:document.getElementById('fTags').value.split(',').map(function(t){return t.trim();}).filter(function(t){return t;}),icon:'fa-cube',history:[{time:new Date().toISOString().split('T')[0],event:'能力创建',user:'张架构'}]});
+  closeModal();
+  updateStats();
+  filterCapabilities();
+  renderTree();
+  toast('能力已创建','success');
+}
+
+// ===== 标签管理弹窗 =====
+function showTagManager(){
+  // 收集所有标签及使用频次
+  var tagCounts={};
+  capabilities.forEach(function(c){
+    c.tags.forEach(function(t){tagCounts[t]=(tagCounts[t]||0)+1;});
+  });
+  var sorted=Object.keys(tagCounts).sort(function(a,b){return tagCounts[b]-tagCounts[a];});
+  var h='<div class="modal-header"><h3>标签体系配置</h3><div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div></div>';
+  h+='<div class="modal-body">';
+  h+='<p style="font-size:12px;color:var(--text-tertiary);margin-bottom:12px">管理能力分类标签，标签用于多维度检索和归集</p>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:var(--surface-subtle);border-radius:8px">';
+  for(var i=0;i<sorted.length;i++){
+    var pct=Math.round(tagCounts[sorted[i]]/capabilities.length*100);
+    h+='<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;background:var(--surface-raised);border:1px solid var(--border-default);border-radius:6px;min-width:70px">';
+    h+='<span style="font-size:12px;font-weight:500;">'+sorted[i]+'</span>';
+    h+='<span style="font-size:10px;color:var(--text-tertiary)">'+tagCounts[sorted[i]]+' 次</span>';
+    h+='<div style="width:100%;height:3px;background:var(--border-subtle);border-radius:2px;margin-top:2px"><div style="height:100%;width:'+pct+'%;background:var(--brand);border-radius:2px"></div></div>';
+    h+='</div>';
+  }
+  h+='</div>';
+  h+='<div style="margin-top:12px;font-size:12px;color:var(--text-tertiary)">共 '+sorted.length+' 个标签，覆盖 '+capabilities.length+' 个能力</div>';
+  h+='</div>';
+  h+='<div class="modal-footer"><button class="btn btn-primary" onclick="closeModal()">关闭</button></div>';
+  document.getElementById('tagModalContent').innerHTML=h;
+  Scaffold.showModal('tagModal');
+}
+
+// ===== 初始化 =====
+updateStats();
+renderTree();
+filterCapabilities();
+
+// 显示来自发布流程的新增服务
+var published = Scaffold.getPublishedServices();
+if (published && published.length > 0) {
+  var maxId = 0;
+  capabilities.forEach(function(c) {
+    var n = parseInt(c.id.split('-')[1]);
+    if (n > maxId) maxId = n;
+  });
+  published.forEach(function(p) {
+    maxId++;
+    capabilities.push({
+      id:'CAP-'+String(maxId).padStart(3,'0'),
+      name:p.serviceName || p.demandTitle,
+      domain:'数据服务',
+      level:'L2',
+      scope:'多业务域',
+      reuse:'R3',
+      owner:'数字化中心',
+      desc:'通过发布流程从需求「'+ (p.demandTitle || p.demandId) +'」发布的服务，版本 '+p.version,
+      reuseRate:70, stability:80, maturity:'L3',
+      tags:['发布服务','自动化'],
+      icon:'fa-rocket',
+      history:[{time:p.date || new Date().toISOString().split('T')[0], event:'服务发布', user:'系统'}]
+    });
+  });
+  updateStats();
+  renderTree();
+  filterCapabilities();
+  if (typeof toast === 'function') toast('已加载 ' + published.length + ' 项通过发布流程新增的服务', 'success');
+}
+
+Scaffold.init('classification');
+</script>
+</body>
+</html>

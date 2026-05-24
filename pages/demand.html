@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+
+<!-- 数据模型（按依赖顺序） -->
+<script src="../_shared/models/enums.js"></script>
+<script src="../_shared/models/utils.js"></script>
+<script src="../_shared/models/status-flow.js"></script>
+<script src="../_shared/models/demand.js"></script>
+<script src="../_shared/models/review.js"></script>
+<script src="../_shared/models/publish.js"></script>
+<script src="../_shared/models/catalog.js"></script>
+<script src="../_shared/models/index.js"></script>
+
+<!-- 脚手架 -->
+<script src="../_shared/scaffold.js"></script>
+
+<!-- 页面特有样式 -->
+<style>
+.parent-row{background:#FAFBFF}
+.parent-row:hover{background:#F0F5FF!important}
+.child-row td:first-child{padding-left:8px}
+.child-row{background:#fff}
+.child-row td{border-bottom:1px solid #F5F5F5}
+.child-indent{display:inline-flex;align-items:center;gap:4px;padding-left:20px;position:relative}
+.child-indent::before{content:'';position:absolute;left:8px;top:50%;width:8px;height:1px;background:#D0D0D0}
+.expand-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;border:1px solid #D0D8E8;background:#fff;cursor:pointer;color:#666;font-size:10px;flex-shrink:0;cursor:pointer;margin-right:4px}
+.expand-btn:hover{background:#E8F0FE;border-color:#4A7DE0;color:#4A7DE0}
+.child-count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#EEF2FF;color:#4A7DE0;font-size:10px;font-weight:600;margin-left:4px;cursor:pointer}
+.btn-add-child{background:none;border:1px dashed #B0C4E8;color:#4A7DE0;padding:0 8px;height:24px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.btn-add-child:hover{background:#E8F0FE;border-color:#4A7DE0}
+.child-badge{display:inline-block;padding:1px 6px;background:#EEF2FF;color:#4A7DE0;border-radius:3px;font-size:10px;margin-right:3px}
+.parent-tag{display:inline-block;padding:1px 6px;background:#FFF7E6;color:#FA8C16;border-radius:3px;font-size:10px;margin-right:3px;cursor:pointer}
+.parent-tag:hover{background:#FFE7BA}
+.check-row{display:flex;align-items:center;gap:6px;padding:4px 0}
+.check-row input[type=checkbox]{width:15px;height:15px;accent-color:#4A7DE0}
+.timeline-item{display:flex;gap:10px;padding:6px 0}
+.timeline-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.timeline-content{flex:1}
+.timeline-content .time{font-size:10px;color:#999}
+.timeline-content .text{font-size:12px;color:#333}
+.text-ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.form-section{margin-bottom:16px}
+.form-section-title{font-size:13px;font-weight:600;color:#181818;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.form-section-title i{font-size:11px}
+.link-input-group{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.link-input-group .input{flex:1}
+.link-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px}
+.link-item .link-url{color:#0056D6;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-item .link-date{color:#999;flex-shrink:0;font-size:11px}
+.link-item .link-remove{color:#ccc;cursor:pointer;flex-shrink:0}
+.link-item .link-remove:hover{color:#FF4D4F}
+</style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<!-- ===== 顶部导航栏 ===== -->
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1">
+    <div class="flex items-center gap-2 mr-6">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div>
+      <span class="text-white font-semibold text-base">业务中台装配环境</span>
+    </div>
+    <nav class="flex items-center gap-0.5">
+      <a href="../index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>首页</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm">
+    <div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div>
+    <div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div>
+    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div>
+    <span class="text-xs">张架构</span>
+  </div>
+</header>
+
+<!-- ===== 主体布局 ===== -->
+<div class="flex flex-1 overflow-hidden">
+  <!-- 侧边栏（由 Scaffold 动态渲染） -->
+  <aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+
+  <!-- ===== 主内容区 ===== -->
+  <main class="flex-1 overflow-y-auto">
+    <div id="breadcrumb"></div>
+
+    <!-- ====== Page Header ====== -->
+    <div class="page-hero">
+      <div>
+        <div class="section-eyebrow">Demand Management</div>
+        <h2>需求台账</h2>
+        <div class="subtitle">统一管理业务需求的全生命周期，支持创建、跟踪、评审与发布追溯</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" onclick="showNewModal(null)"><i class="fa-solid fa-plus"></i>新建</button>
+      </div>
+    </div>
+
+    <!-- ====== Page Content ====== -->
+    <div class="page-section anim-fade-up">
+    <!-- content -->
+      <!-- 工具栏 -->
+      <div class="flex items-center justify-between mb-4" style="flex-wrap:wrap;gap:8px">
+        <div class="flex items-center gap-3" style="flex-wrap:wrap">
+          <div class="view-toggle" id="viewToggle">
+            <div class="vbtn active" data-view="table" onclick="switchView('table')"><i class="fa-solid fa-list mr-1"></i>列表</div>
+            <div class="vbtn" data-view="kanban" onclick="switchView('kanban')"><i class="fa-solid fa-columns mr-1"></i>看板</div>
+          </div>
+          <div class="flex items-center gap-2" style="border-left:1px solid #E0E4E8;padding-left:10px;flex-wrap:wrap">
+            <select class="filter-select" id="filterType" onchange="applyFilters()"><option value="">所有类型</option><option value="场景">场景</option><option value="模块">模块</option><option value="组件">组件</option><option value="数据服务">数据服务</option><option value="模型服务">模型服务</option><option value="其他">其他</option></select>
+            <select class="filter-select" id="filterDomain" onchange="applyFilters()"><option value="">所有业务域</option><option>油气生产经营</option><option>油气新能源</option><option>炼化新材料</option><option>销售</option><option>天然气销售</option><option>海外油气</option><option>国际贸易</option><option>油田技术服务</option><option>工程建设</option><option>装备制造</option><option>运输物流</option></select>
+            <select class="filter-select" id="filterStatus" onchange="applyFilters()"><option value="">所有状态</option><option>待评审</option><option>设计中</option><option>已上线</option><option>已驳回</option></select>
+            <select class="filter-select" id="filterPriority" onchange="applyFilters()"><option value="">所有优先级</option><option>紧急</option><option>高</option><option>中</option><option>低</option></select>
+          </div>
+        </div>
+        <div class="flex items-center gap-2" style="flex-wrap:wrap">
+          <div class="flex items-center gap-2 search-wrap">
+            <i class="fa-solid fa-magnifying-glass text-xs" style="color:var(--text-tertiary)"></i>
+            <input type="text" placeholder="搜索..." class="input" style="border:none;box-shadow:none;width:140px" id="filterSearch" oninput="applyFilters()">
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fa-solid fa-rotate-right mr-1"></i>重置</button>
+          <button class="btn btn-outline btn-sm" onclick="exportData()"><i class="fa-solid fa-download mr-1"></i>导出</button>
+          <button class="btn btn-primary btn-sm" onclick="showNewModal(null)"><i class="fa-solid fa-plus mr-1"></i>新建</button>
+        </div>
+      </div>
+
+      <!-- 批操作栏 -->
+      <div class="batch-bar" id="batchBar">
+        <span class="sel-count" id="selCount">已选 0 项</span>
+        <button class="btn btn-outline btn-sm" onclick="batchAction('status','设计中')"><i class="fa-solid fa-play mr-1"></i>开始设计</button>
+        <button class="btn btn-outline btn-sm" onclick="batchAction('status','待评审')"><i class="fa-solid fa-undo mr-1"></i>退回</button>
+        <button class="btn btn-danger btn-sm" onclick="batchAction('delete')"><i class="fa-solid fa-trash mr-1"></i>删除</button>
+        <button class="btn btn-outline btn-sm" onclick="clearSelection()" style="margin-left:auto"><i class="fa-solid fa-xmark mr-1"></i>取消</button>
+      </div>
+
+      <!-- 列表视图 -->
+      <div id="tableView"><div class="card overflow-hidden">
+        <div style="overflow-x:auto">
+        <table class="data-table"><thead><tr>
+          <th style="width:32px"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>
+          <th style="width:100px">编号</th><th style="min-width:200px">标题</th><th style="width:60px">类型</th>
+          <th style="width:90px">业务域</th><th style="width:55px">优先级</th><th style="width:65px">状态</th>
+          <th style="width:60px">负责人</th><th style="width:45px">工时</th><th style="width:75px">迭代</th>
+          <th style="width:80px">日期</th><th style="width:130px">操作</th>
+        </tr></thead><tbody id="tableBody"></tbody></table>
+        </div>
+        <div id="noResult" class="empty-state" style="display:none"><i class="fa-solid fa-inbox"></i><div class="msg">暂无匹配的需求记录</div></div>
+        <div class="card-footer">
+          <span class="text-xs" style="color:var(--text-tertiary)" id="pageInfo">共 0 条记录</span>
+          <div class="flex items-center gap-1" id="pageBtns"></div>
+        </div>
+      </div></div>
+
+      <!-- 看板视图 -->
+      <div id="kanbanView" style="display:none"><div class="kanban-board" id="kanbanBoard"></div></div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== 弹窗 ===== -->
+<div class="modal-overlay" id="newModal"><div class="modal-box" id="modalContent"></div></div>
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()"><div class="detail-panel" onclick="event.stopPropagation()" id="detailPanel"></div></div>
+
+<!-- ===== 页面脚本 ===== -->
+<script>
+/* ===== 数据 ===== */
+var DEMANDS=[
+/* ── 主需求：油气生产智能感知平台（含3个子需求）── */
+{id:'DMD-0024',title:'油气生产智能感知平台',type:'场景',domain:'油气生产经营',priority:'紧急',status:'设计中',assignee:'李业务',reporter:{name:'李业务',unit:'油气生产部',dept:'数字化中心'},estHours:320,sprint:'Sprint-12',tags:['平台','智能感知'],acceptance:'完成感知、采集、分析全链路贯通',desc:'建设覆盖油气生产全流程的智能感知平台，整合数据采集、异常告警和分析服务。',created:'2026-04-10',updated:'2026-04-14',designLink:'https://axure.example.com/demand/24',devLink:'',testLink:'',releaseLink:'',parentId:null,version:'V1.0',history:[{time:'2026-04-10 09:00',action:'创建',user:'李业务'},{time:'2026-04-11 10:00',action:'评审通过',user:'张架构'},{time:'2026-04-12 09:00',action:'开始设计',user:'李业务'}]},
+{id:'DMD-0024-1',title:'生产数据实时采集服务',type:'数据服务',domain:'油气生产经营',priority:'紧急',status:'待评审',assignee:'李业务',reporter:'李业务',estHours:120,sprint:'Sprint-12',tags:['数据采集'],acceptance:'支持≥5种传感器协议接入，延迟<500ms',desc:'建立生产数据实时采集通道，支持多种传感器协议接入。',created:'2026-04-14',updated:'2026-04-14',designLink:'',devLink:'',testLink:'',releaseLink:'',parentId:'DMD-0024',version:'',history:[{time:'2026-04-14 10:30',action:'创建',user:'李业务'}]},
+{id:'DMD-0024-2',title:'油井监控数据异常告警',type:'模块',domain:'油气生产经营',priority:'高',status:'设计中',assignee:'王技术',reporter:'李业务',estHours:80,sprint:'Sprint-12',tags:['告警'],acceptance:'异常检测准确率≥95%',desc:'对油井监控数据实时分析，异常时自动触发告警。',created:'2026-04-13',updated:'2026-04-14',designLink:'https://axure.example.com/demand/24-2',devLink:'https://git.example.com/oilwell-alert',testLink:'',releaseLink:'',parentId:'DMD-0024',version:'',history:[{time:'2026-04-13 09:00',action:'创建',user:'李业务'},{time:'2026-04-14 14:20',action:'评审通过',user:'张架构'},{time:'2026-04-15 10:00',action:'开始设计',user:'王技术'}]},
+{id:'DMD-0024-3',title:'管网压力分析服务',type:'数据服务',domain:'装备制造',priority:'高',status:'设计中',assignee:'赵工程',reporter:'赵工程',estHours:96,sprint:'Sprint-12',tags:['分析'],acceptance:'预测误差<5%',desc:'搭建管网压力分析服务，包含趋势分析和预测模型。',created:'2026-04-12',updated:'2026-04-13',designLink:'https://axure.example.com/demand/24-3',devLink:'',testLink:'',releaseLink:'',parentId:'DMD-0024',version:'',history:[{time:'2026-04-12 08:30',action:'创建',user:'赵工程'},{time:'2026-04-13 15:00',action:'评审通过',user:'张架构'},{time:'2026-04-14 09:00',action:'开始设计',user:'赵工程'}]},
+/* ── 主需求：生产报表自动生成（含2个子需求）── */
+{id:'DMD-0021',title:'生产报表自动生成',type:'模块',domain:'炼化新材料',priority:'中',status:'已上线',assignee:'孙分析',reporter:'孙分析',estHours:40,sprint:'Sprint-11',tags:['报表'],acceptance:'支持Excel/PDF导出',desc:'自动生成日/周/月生产报表。',created:'2026-04-10',updated:'2026-04-14',designLink:'https://axure.example.com/demand/21',devLink:'https://git.example.com/report-gen',testLink:'https://test.example.com/report',releaseLink:'https://prod.example.com/report',parentId:null,version:'V1.0',history:[{time:'2026-04-10 10:00',action:'创建',user:'孙分析'},{time:'2026-04-11 09:00',action:'评审通过',user:'张架构'},{time:'2026-04-12 10:00',action:'开始设计',user:'孙分析'},{time:'2026-04-13 14:00',action:'开始开发',user:'孙分析'},{time:'2026-04-14 10:00',action:'完成测试',user:'孙分析'},{time:'2026-04-14 16:00',action:'发布上线',user:'孙分析'}]},
+{id:'DMD-0021-1',title:'报表模板自定义配置',type:'组件',domain:'炼化新材料',priority:'中',status:'设计中',assignee:'孙分析',reporter:'孙分析',estHours:24,sprint:'Sprint-12',tags:['报表','模板'],acceptance:'支持10种以上报表模板',desc:'支持用户自定义报表模板，包括字段选择、布局设置等。',created:'2026-04-15',updated:'2026-04-15',designLink:'',devLink:'',testLink:'',releaseLink:'',parentId:'DMD-0021',version:'',history:[{time:'2026-04-15 09:00',action:'创建',user:'孙分析'}]},
+{id:'DMD-0021-2',title:'报表定时推送服务',type:'数据服务',domain:'炼化新材料',priority:'低',status:'待评审',assignee:'孙分析',reporter:'孙分析',estHours:16,sprint:'',tags:['报表','推送'],acceptance:'支持邮件/企微推送',desc:'定时自动推送生成的报表至指定人员邮箱或企业微信。',created:'2026-04-15',updated:'2026-04-15',designLink:'',devLink:'',testLink:'',releaseLink:'',parentId:'DMD-0021',version:'',history:[{time:'2026-04-15 10:00',action:'创建',user:'孙分析'}]},
+/* ── 普通主需求（无子需求）── */
+{id:'DMD-0020',title:'设备巡检路线优化',type:'组件',domain:'油田技术服务',priority:'低',status:'已驳回',assignee:'周运维',reporter:'周运维',estHours:32,sprint:'',tags:['巡检'],acceptance:'',desc:'优化巡检路线，减少工作量。',created:'2026-04-08',updated:'2026-04-09',designLink:'',devLink:'',testLink:'',releaseLink:'',parentId:null,version:'V1.0',history:[{time:'2026-04-08 10:00',action:'创建',user:'周运维'},{time:'2026-04-09 14:00',action:'评审驳回',user:'张架构'}]},
+{id:'DMD-0019',title:'安全巡检数字化',type:'场景',domain:'油气新能源',priority:'中',status:'已上线',assignee:'郑安全',reporter:'郑安全',estHours:56,sprint:'Sprint-10',tags:['安全'],acceptance:'移动端可用性≥4.5',desc:'实现安全巡检流程数字化，支持移动端上传。',created:'2026-04-07',updated:'2026-04-14',designLink:'https://axure.example.com/demand/19',devLink:'https://git.example.com/safe-inspect',testLink:'https://test.example.com/safe',releaseLink:'https://prod.example.com/safe',parentId:null,version:'V1.0',history:[{time:'2026-04-07 09:00',action:'创建',user:'郑安全'},{time:'2026-04-08 10:00',action:'评审通过',user:'张架构'},{time:'2026-04-09 09:00',action:'开始设计',user:'郑安全'},{time:'2026-04-10 10:00',action:'开始开发',user:'郑安全'},{time:'2026-04-13 14:00',action:'完成测试',user:'郑安全'},{time:'2026-04-14 10:00',action:'发布上线',user:'郑安全'}]},
+{id:'DMD-0018',title:'环保数据监测上报',type:'数据服务',domain:'销售',priority:'高',status:'已上线',assignee:'冯环保',reporter:'冯环保',estHours:64,sprint:'Sprint-11',tags:['环保'],acceptance:'数据完整率≥99.5%',desc:'实时监测环保数据，自动生成报表。',created:'2026-04-05',updated:'2026-04-14',designLink:'https://axure.example.com/demand/18',devLink:'https://git.example.com/env-monitor',testLink:'https://test.example.com/env',releaseLink:'https://prod.example.com/env',parentId:null,version:'V1.0',history:[{time:'2026-04-05 08:00',action:'创建',user:'冯环保'},{time:'2026-04-06 09:00',action:'评审通过',user:'张架构'},{time:'2026-04-07 10:00',action:'开始设计',user:'冯环保'},{time:'2026-04-09 10:00',action:'开始开发',user:'冯环保'},{time:'2026-04-12 14:00',action:'完成测试',user:'冯环保'},{time:'2026-04-14 09:00',action:'发布上线',user:'冯环保'}]},
+{id:'DMD-0017',title:'设备寿命预测模型',type:'模型服务',domain:'天然气销售',priority:'高',status:'设计中',assignee:'赵工程',reporter:'赵工程',estHours:160,sprint:'Sprint-13',tags:['AI'],acceptance:'预测准确率≥85%',desc:'基于运行数据建立寿命预测模型。',created:'2026-04-03',updated:'2026-04-13',designLink:'https://axure.example.com/demand/17',devLink:'',testLink:'',releaseLink:'',parentId:null,version:'V1.0',history:[{time:'2026-04-03 10:00',action:'创建',user:'赵工程'},{time:'2026-04-04 09:00',action:'评审通过',user:'张架构'},{time:'2026-04-05 09:00',action:'开始设计',user:'赵工程'}]},
+{id:'DMD-0016',title:'生产调度智能优化',type:'场景',domain:'海外油气',priority:'紧急',status:'待评审',assignee:'李业务',reporter:'李业务',estHours:200,sprint:'',tags:['AI'],acceptance:'效率提升≥10%',desc:'利用AI算法优化生产调度方案。',created:'2026-04-02',updated:'2026-04-14',designLink:'',devLink:'',testLink:'',releaseLink:'',parentId:null,version:'V1.0',history:[{time:'2026-04-02 10:00',action:'创建',user:'李业务'}]},
+{id:'DMD-0015',title:'能耗统计分析系统',type:'模块',domain:'国际贸易',priority:'中',status:'已上线',assignee:'孙分析',reporter:'孙分析',estHours:48,sprint:'Sprint-10',tags:['能耗'],acceptance:'误差<1%',desc:'统计分析能耗数据，生成节能建议。',created:'2026-04-01',updated:'2026-04-14',designLink:'https://axure.example.com/demand/15',devLink:'https://git.example.com/energy-stat',testLink:'',releaseLink:'https://prod.example.com/energy',parentId:null,version:'V1.0',history:[{time:'2026-04-01 09:00',action:'创建',user:'孙分析'},{time:'2026-04-02 09:00',action:'评审通过',user:'张架构'},{time:'2026-04-03 10:00',action:'开始设计',user:'孙分析'},{time:'2026-04-06 10:00',action:'开始开发',user:'孙分析'},{time:'2026-04-10 14:00',action:'完成测试',user:'孙分析'},{time:'2026-04-14 09:00',action:'发布上线',user:'孙分析'}]},
+{id:'DMD-0014',title:'应急指挥调度平台',type:'场景',domain:'工程建设',priority:'紧急',status:'设计中',assignee:'郑安全',reporter:'郑安全',estHours:240,sprint:'Sprint-13',tags:['应急'],acceptance:'响应时间<5分钟',desc:'建设应急指挥平台，支持突发事件快速响应。',created:'2026-03-30',updated:'2026-04-13',designLink:'https://axure.example.com/demand/14',devLink:'',testLink:'',releaseLink:'',parentId:null,version:'V1.0',history:[{time:'2026-03-30 08:00',action:'创建',user:'郑安全'},{time:'2026-03-31 09:00',action:'评审通过',user:'张架构'},{time:'2026-04-01 09:00',action:'开始设计',user:'郑安全'}]},
+{id:'DMD-0013',title:'设备维修工单系统',type:'模块',domain:'运输物流',priority:'中',status:'已上线',assignee:'周运维',reporter:'周运维',estHours:72,sprint:'Sprint-9',tags:['工单'],acceptance:'及时率≥90%',desc:'维修工单在线创建、分派、跟踪和闭环管理。',created:'2026-03-28',updated:'2026-04-14',designLink:'https://axure.example.com/demand/13',devLink:'https://git.example.com/maint-order',testLink:'https://test.example.com/maint',releaseLink:'https://prod.example.com/maint',parentId:null,version:'V1.0',history:[{time:'2026-03-28 10:00',action:'创建',user:'周运维'},{time:'2026-03-29 09:00',action:'评审通过',user:'张架构'},{time:'2026-03-30 09:00',action:'开始设计',user:'周运维'},{time:'2026-04-02 10:00',action:'开始开发',user:'周运维'},{time:'2026-04-08 14:00',action:'完成测试',user:'周运维'},{time:'2026-04-14 09:00',action:'发布上线',user:'周运维'}]}
+];
+
+var sourceNames={'1':'业务方提报','2':'产品经理','3':'运营反馈','4':'客服反馈','5':'API 拓取','6':'管理层指令'};
+var sourceDescs={'1':'业务部门根据实际工作需要提出的功能改进或新需求','2':'产品经理基于产品规划或用户调研提出的需求','3':'运营人员根据数据分析或用户反馈提出的优化需求','4':'客服人员在支持用户过程中发现的痛点需求','5':'通过系统 API 接口自动同步的外部需求','6':'由管理层或战略规划层面下达的指令性需求'};
+
+/* ===== 工具函数（局部版本，兼容格式） ===== */
+function toast(msg,type){Scaffold.showToast(msg,type);}
+function closeModal(){Scaffold.hideModal('newModal');}
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('show');}
+
+// 页面导航
+function goToReview(demandId, demandTitle) {
+  Scaffold.navigateTo('review.html', {demandId: demandId, demandTitle: demandTitle});
+}
+function goToAssembly(demandId) {
+  Scaffold.navigateTo('assembly.html', {demandId: demandId});
+}
+function now(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function badge(m,v){var c=m[v]||'#F5F5F5|#999';var p=c.split('|');return '<span class="badge" style="background:'+p[0]+';color:'+p[1]+'">'+v+'</span>';}
+
+// ===== 数据模型转换 =====
+function normalizeDemands(rawDemands) {
+  return rawDemands.map(function(d) {
+    return Models.Demand.create({
+      id: d.id,
+      title: d.title,
+      type: typeof d.type === 'string' ? Models.Enum.DemandType[d.type.toUpperCase().replace(/[\s-]/g, '_')] || d.type : d.type,
+      domain: d.domain,
+      priority: typeof d.priority === 'string' ? Models.Enum.Priority[d.priority.toUpperCase()] || d.priority : d.priority,
+      status: typeof d.status === 'string' ? Models.Enum.DemandStatus[d.status.replace(/[\s-]/g, '_').toUpperCase()] || d.status : d.status,
+      assignee: d.assignee,
+      reporter: typeof d.reporter === 'string' ? {name: d.reporter, unit: '', dept: ''} : (d.reporter || {name: '', unit: '', dept: ''}),
+      parentId: d.parentId || null,
+      source: d.source || Models.Enum.Source.BUSINESS,
+      businessBackground: d.businessBackground || d.desc || '',
+      userStory: d.userStory || d.desc || '',
+      expectedValue: d.expectedValue || d.acceptance || '',
+      acceptance: d.acceptance || '',
+      desc: d.desc || '',
+      iterationType: d.iterationType || Models.Enum.IterationType.NEW,
+      iterationNote: d.iterationNote || '',
+      version: d.version || '',
+      expectedDate: d.expectedDate || '',
+      estHours: d.estHours || 0,
+      designLink: d.designLink || '',
+      devLink: d.devLink || '',
+      testLink: d.testLink || '',
+      releaseLink: d.releaseLink || '',
+      tags: d.tags || [],
+      sprint: d.sprint || '',
+      created: d.created,
+      updated: d.updated,
+      history: d.history || [],
+      comments: d.comments || []
+    });
+  });
+}
+
+DEMANDS = normalizeDemands(DEMANDS);
+
+var demands=JSON.parse(JSON.stringify(DEMANDS));
+var filtered=demands.slice();
+var currentPage=1,pageSize=8,currentView='table';
+var selectedIds={},editingId=null;
+var expandedParents={};
+
+var pColors={'紧急':'#FFF1F0|#FF4D4F','高':'#FFF1F0|#FF4D4F','中':'#F6FFED|#52C41A','低':'#F0F5FF|#999'};
+var sColors={'待评审':'#FFFBE6|#FAAD14','设计中':'#E8F0FE|#4A7DE0','已上线':'#F6FFED|#52C41A','已驳回':'#F5F5F5|#999'};
+var typeColors={'场景':'#722ED1|#F9F0FF','模块':'#4A7DE0|#E8F0FE','组件':'#13C2C2|#E6FFFB','数据服务':'#FA8C16|#FFF7E6','模型服务':'#EB2F96|#FFF0F6','其他':'#999|#F5F5F5'};
+
+function getChildren(parentId){return demands.filter(function(d){return d.parentId===parentId;});}
+function isParent(d){return !d.parentId;}
+
+function toggleExpand(parentId){
+  expandedParents[parentId]=!expandedParents[parentId];
+  renderTable();
+}
+
+function initExpandState(){
+  demands.forEach(function(d){
+    if(isParent(d)){
+      var ch=getChildren(d.id);
+      if(ch.length>0&&expandedParents[d.id]===undefined)expandedParents[d.id]=true;
+    }
+  });
+}
+
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeDetail();}});
+
+function switchView(v){
+  currentView=v;
+  document.querySelectorAll('#viewToggle .vbtn').forEach(function(b){b.classList.toggle('active',b.dataset.view===v);});
+  document.getElementById('tableView').style.display=v==='table'?'':'none';
+  document.getElementById('kanbanView').style.display=v==='kanban'?'':'none';
+  applyFilters();
+}
+
+function applyFilters(){
+  var t=document.getElementById('filterType').value;
+  var d=document.getElementById('filterDomain').value;
+  var s=document.getElementById('filterStatus').value;
+  var p=document.getElementById('filterPriority').value;
+  var q=document.getElementById('filterSearch').value.toLowerCase();
+  var matchIds={};
+  demands.forEach(function(x){
+    var ok=true;
+    if(t&&x.type!==t)ok=false;
+    if(d&&x.domain!==d)ok=false;
+    if(s&&x.status!==s)ok=false;
+    if(p&&x.priority!==p)ok=false;
+    if(q&&x.id.toLowerCase().indexOf(q)===-1&&x.title.toLowerCase().indexOf(q)===-1)ok=false;
+    if(ok)matchIds[x.id]=true;
+  });
+  demands.forEach(function(x){
+    if(matchIds[x.id]){
+      if(x.parentId&&!matchIds[x.parentId])matchIds[x.parentId]='parent-by-child';
+    }
+  });
+  demands.forEach(function(x){
+    if(matchIds[x.id]==='parent-by-child'||matchIds[x.id]===true){
+      if(isParent(x)&&matchIds[x.id]===true&&!t&&!d&&!s&&!p&&!q){
+        getChildren(x.id).forEach(function(c){matchIds[c.id]=true;});
+      }
+    }
+  });
+  filtered=demands.filter(function(x){return !!matchIds[x.id];});
+  if(currentView==='table')renderTable();else renderKanban();
+  updateBatchBar();
+}
+
+function renderTable(){
+  var parentRows=filtered.filter(function(x){return isParent(x);});
+  var orphanChildren=filtered.filter(function(x){return !isParent(x)&&!filtered.find(function(p){return p.id===x.parentId;});});
+  var rows=[];
+  parentRows.forEach(function(x){
+    rows.push({data:x,isChild:false});
+    var ch=getChildren(x.id).filter(function(c){return filtered.some(function(f){return f.id===c.id;});});
+    if(ch.length>0&&expandedParents[x.id]){
+      ch.forEach(function(c){rows.push({data:c,isChild:true});});
+    }
+  });
+  orphanChildren.forEach(function(x){rows.push({data:x,isChild:true});});
+
+  var total=rows.length;
+  var tp=Math.max(1,Math.ceil(total/pageSize));
+  if(currentPage>tp)currentPage=tp;
+  var start=(currentPage-1)*pageSize;
+  var pd=rows.slice(start,start+pageSize);
+  var tb=document.getElementById('tableBody');
+  var nr=document.getElementById('noResult');
+  if(pd.length===0){tb.innerHTML='';nr.style.display='block';}
+  else{
+    nr.style.display='none';
+    var h='';
+    for(var i=0;i<pd.length;i++){
+      var row=pd[i];
+      var x=row.data;
+      var isChild=row.isChild;
+      var tc=typeColors[x.type]?typeColors[x.type].split('|'):['#999','#F5F5F5'];
+      var children=getChildren(x.id);
+      var hasChildren=!isChild&&children.length>0;
+      var isExpanded=expandedParents[x.id];
+      var rowCls=isChild?'child-row':'parent-row';
+      if(selectedIds[x.id])rowCls+=' selected';
+      h+='<tr class="'+rowCls+'">';
+      h+='<td><input type="checkbox"'+(selectedIds[x.id]?' checked':'')+' onchange="toggleSelect(\''+x.id+'\',this.checked)"></td>';
+      if(isChild){
+        h+='<td style="color:#999;font-family:monospace;font-size:11px;padding-left:28px">'+x.id+'</td>';
+      }else{
+        h+='<td style="color:#4A7DE0;font-family:monospace;font-size:11px">'+x.id+'</td>';
+      }
+      h+='<td>';
+      if(isChild){
+        h+='<div class="child-indent"><span style="color:#4A7DE0;cursor:pointer;font-size:12px;font-weight:500" onclick="showDetail(\''+x.id+'\')">'+x.title+'</span></div>';
+      }else{
+        h+='<div style="display:flex;align-items:center;gap:4px">';
+        if(hasChildren){
+          h+='<span class="expand-btn" onclick="toggleExpand(\''+x.id+'\')" title="'+(isExpanded?'收起':'展开')+'子需求"><i class="fa-solid fa-'+(isExpanded?'chevron-down':'chevron-right')+'" style="font-size:9px"></i></span>';
+        }
+        h+='<span style="color:#181818;cursor:pointer;font-weight:500;font-size:12px" onclick="showDetail(\''+x.id+'\')">'+x.title+'</span>';
+        if(hasChildren){
+          h+='<span class="child-count-badge" title="'+children.length+'个子需求" onclick="toggleExpand(\''+x.id+'\')">'+children.length+'</span>';
+        }
+        h+='</div>';
+      }
+      h+='</td>';
+      h+='<td><span class="tag" style="background:'+tc[1]+';color:'+tc[0]+'">'+x.type+'</span></td>';
+      h+='<td style="font-size:11px">'+x.domain+'</td>';
+      h+='<td>'+badge(pColors,x.priority)+'</td>';
+      h+='<td>'+badge(sColors,x.status)+'</td>';
+      h+='<td style="font-size:11px">'+x.assignee+'</td>';
+      h+='<td style="font-size:11px">'+(x.estHours?x.estHours+'h':'-')+'</td>';
+      h+='<td style="font-size:11px">'+(x.sprint||'-')+'</td>';
+      h+='<td style="font-size:11px;color:#999">'+x.created+'</td>';
+      var isLocked=(x.status==='已驳回' || x.status==='已上线');
+      var canAddChild=(x.status!=='已驳回');
+      h+='<td>';
+      h+='<a href="javascript:void(0)" class="btn-text mr-1" onclick="showDetail(\''+x.id+'\')">详情</a>';
+      if(!isLocked){
+        h+='<a href="javascript:void(0)" class="btn-text mr-1" onclick="showEdit(\''+x.id+'\')">编辑</a>';
+      }
+      if(!isChild && canAddChild){
+        h+='<button class="btn-add-child" onclick="showNewChildModal(\''+x.id+'\')"><i class="fa-solid fa-plus" style="font-size:9px;margin-right:2px"></i>子需求</button>';
+      }
+      h+='</td>';
+      h+='</tr>';
+    }
+    tb.innerHTML=h;
+  }
+  var totalParents=filtered.filter(function(x){return isParent(x);}).length;
+  var totalChildren=filtered.filter(function(x){return !isParent(x);}).length;
+  var infoTxt='共 '+parentRows.length+' 条主需求';
+  if(totalChildren>0)infoTxt+=('，'+totalChildren+' 条子需求');
+  document.getElementById('pageInfo').textContent=infoTxt;
+  var ph='<button class="px-2 py-1 text-xs border rounded" style="border-color:#E0E4E8;color:'+(currentPage>1?'#666':'#999')+'" onclick="goPage('+Math.max(1,currentPage-1)+')"'+(currentPage<=1?' disabled':'')+'>«</button>';
+  for(var p=1;p<=tp;p++){
+    if(p===currentPage)ph+='<button class="px-2.5 py-1 text-xs rounded text-white" style="background:#4A7DE0">'+p+'</button>';
+    else ph+='<button class="px-2.5 py-1 text-xs border rounded" style="border-color:#E0E4E8" onclick="goPage('+p+')">'+p+'</button>';
+  }
+  ph+='<button class="px-2 py-1 text-xs border rounded" style="border-color:#E0E4E8;color:'+(currentPage<tp?'#666':'#999')+'" onclick="goPage('+Math.min(tp,currentPage+1)+')"'+(currentPage>=tp?' disabled':'')+'>»</button>';
+  document.getElementById('pageBtns').innerHTML=ph;
+}
+
+function renderKanban(){
+  var statuses=['待评审','设计中','已上线','已驳回'];
+  var sc={'待评审':'#FAAD14','设计中':'#4A7DE0','已上线':'#52C41A','已驳回':'#999'};
+  var h='';
+  for(var si=0;si<statuses.length;si++){
+    var s=statuses[si];
+    var items=filtered.filter(function(x){return x.status===s;});
+    h+='<div class="kanban-col"><div class="kanban-col-header" style="border-top:3px solid '+sc[s]+'"><span>'+s+'</span><span class="count">'+items.length+'</span></div>';
+    if(items.length===0)h+='<div style="padding:16px;text-align:center;color:#ccc;font-size:11px">暂无需求</div>';
+    for(var j=0;j<items.length;j++){
+      var x=items[j];
+      var tc=typeColors[x.type]?typeColors[x.type].split('|'):['#999','#F5F5F5'];
+      h+='<div class="kanban-card" onclick="showDetail(\''+x.id+'\')"><div class="kanban-card-title" title="'+x.title+'">'+x.title+'</div><div class="kanban-card-meta"><span class="kanban-card-id">'+x.id+'</span><div style="display:flex;gap:3px"><span class="tag" style="background:'+tc[1]+';color:'+tc[0]+'">'+x.type+'</span>'+badge(pColors,x.priority)+'</div></div></div>';
+    }
+    h+='</div>';
+  }
+  document.getElementById('kanbanBoard').innerHTML=h;
+}
+
+function goPage(p){currentPage=p;if(currentView==='table')renderTable();}
+
+function toggleSelect(id,chk){if(chk)selectedIds[id]=true;else delete selectedIds[id];updateBatchBar();if(currentView==='table')renderTable();}
+function toggleAll(cb){var tp=Math.max(1,Math.ceil(filtered.length/pageSize));if(currentPage>tp)currentPage=tp;var start=(currentPage-1)*pageSize;var pd=filtered.slice(start,start+pageSize);for(var i=0;i<pd.length;i++){if(cb.checked)selectedIds[pd[i].id]=true;else delete selectedIds[pd[i].id];}if(currentView==='table')renderTable();updateBatchBar();}
+function clearSelection(){selectedIds={};updateBatchBar();if(currentView==='table')renderTable();}
+function updateBatchBar(){var n=Object.keys(selectedIds).length;var bar=document.getElementById('batchBar');if(n>0){bar.classList.add('show');document.getElementById('selCount').textContent='已选 '+n+' 项';}else bar.classList.remove('show');}
+function batchAction(action,val){
+  var ids=Object.keys(selectedIds);
+  if(action==='delete'){if(!confirm('确定删除选中的 '+ids.length+' 条需求？'))return;demands=demands.filter(function(x){return selectedIds[x.id]!==true;});toast('已删除 '+ids.length+' 条','success');}
+  else{for(var i=0;i<demands.length;i++){if(selectedIds[demands[i].id])demands[i][action]=val;}toast('已更新 '+ids.length+' 条','success');}
+  selectedIds={};applyFilters();
+}
+
+function showNewChildModal(parentId){
+  var parent=demands.find(function(d){return d.id===parentId;});
+  if(!parent)return;
+  editingId=null;
+  var m=document.getElementById('modalContent');
+  m.className='modal-box wide';
+  var typeOpts='<option value="场景">场景</option><option value="模块">模块</option><option value="组件">组件</option><option value="数据服务">数据服务</option><option value="模型服务">模型服务</option><option value="其他">其他</option>';
+  var srcOpts='<option value="1">业务方提报</option><option value="2">产品经理</option><option value="3">运营反馈</option><option value="4">客服反馈</option><option value="5">API 拓取</option><option value="6">管理层指令</option>';
+  var tc=typeColors[parent.type]?typeColors[parent.type].split('|'):['#999','#F5F5F5'];
+  var h='<div class="modal-header">';
+  h+='<div><h3>新建子需求</h3>';
+  h+='<div style="margin-top:3px;display:flex;align-items:center;gap:6px;font-size:12px;color:#666">';
+  h+='<span>所属主需求：</span>';
+  h+='<span style="font-family:monospace;color:#4A7DE0">'+parent.id+'</span>';
+  h+='<span class="tag" style="background:'+tc[1]+';color:'+tc[0]+'">'+parent.type+'</span>';
+  h+='<span style="font-weight:600;color:#181818">'+parent.title+'</span>';
+  h+='</div></div>';
+  h+='<div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div></div>';
+  h+='<div class="modal-body">';
+  h+='<div class="form-context-card">';
+  h+='<div class="ctx-label"><i class="fa-solid fa-layer-group"></i>主需求上下文</div>';
+  h+='<div class="ctx-meta">';
+  h+='<span><b>业务域：</b>'+parent.domain+'</span>';
+  h+='<span><b>状态：</b>'+badge(sColors,parent.status)+'</span>';
+  h+='<span><b>负责人：</b>'+(parent.assignee||'待指定')+'</span>';
+  h+='</div>';
+  if(parent.desc)h+='<div class="ctx-desc">'+parent.desc+'</div>';
+  h+='</div>';
+  h+='<div class="form-group"><label><span class="req">*</span>子需求标题</label><input type="text" class="input" id="fTitle" name="title" placeholder="请输入子需求标题" autocomplete="off"></div>';
+  h+='<div class="form-row"><div class="form-group"><label><span class="req">*</span>需求类型</label><select class="filter-select" id="fType" name="type">'+typeOpts+'</select></div>';
+  h+='<div class="form-group"><label><span class="req">*</span>优先级</label><select class="filter-select" id="fPriority" name="priority"><option>中</option><option>紧急</option><option>高</option><option>低</option></select></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label><span class="req">*</span>业务域</label><select class="filter-select" id="fDomain" name="domain">';
+  var domains=['油气生产经营','油气新能源','炼化新材料','销售','天然气销售','海外油气','国际贸易','油田技术服务','工程建设','装备制造','运输物流'];
+  domains.forEach(function(dv){h+='<option'+(dv===parent.domain?' selected':'')+'>'+dv+'</option>';});
+  h+='</select></div><div class="form-group"><label>负责人</label><select class="filter-select" id="fAssignee" name="assignee"><option></option>';
+  ['张架构','李业务','王技术','赵工程','孙分析','周运维'].forEach(function(a){h+='<option'+(a===parent.assignee?' selected':'')+'>'+a+'</option>';});
+  h+='</select></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label><span class="req">*</span>需求来源</label><select class="filter-select" id="fSource" name="source">'+srcOpts+'</select></div>';
+  h+='<div class="form-group"><label>期望上线</label><input type="date" class="input" id="fExpectedDate" name="expectedDate"></div></div>';
+  h+='<div class="form-group"><label><span class="req">*</span>业务背景</label><textarea id="fBusinessBackground" name="businessBackground" class="textarea" placeholder="描述该子需求的业务背景..."></textarea></div>';
+  h+='<div class="form-group"><label><span class="req">*</span>用户故事</label><textarea id="fUserStory" name="userStory" class="textarea" placeholder="作为...我希望...以便..."></textarea></div>';
+  h+='<div class="form-group"><label><span class="req">*</span>预期价值</label><textarea id="fExpectedValue" name="expectedValue" class="textarea" placeholder="预期带来的业务价值..."></textarea></div>';
+  h+='<div class="form-row"><div class="form-group"><label>验收标准</label><textarea id="fAcceptance" name="acceptance" class="textarea" placeholder="可验证的验收条件..."></textarea></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label>预估工时(h)</label><input type="number" class="input" id="fHours" name="hours" value="16"></div><div class="form-group"><label>迭代/Sprint</label><input type="text" class="input" id="fSprint" name="sprint" value="'+(parent.sprint||'')+'"></div></div>';
+  h+='<div class="form-group"><label>需求描述</label><textarea id="fDesc" name="desc" class="textarea" placeholder="补充说明..."></textarea></div>';
+  h+='<input type="hidden" id="fParentId" name="parentId" value="'+parentId+'">';
+  h+='<input type="hidden" id="fIterationType" name="iterationType" value="sub">';
+  h+='<input type="hidden" id="fBusinessBackground_ok" value="1">';
+  h+='<input type="hidden" id="fDesignLink" name="designLink" value=""><input type="hidden" id="fDevLink" name="devLink" value=""><input type="hidden" id="fTestLink" name="testLink" value=""><input type="hidden" id="fReleaseLink" name="releaseLink" value="">';
+  h+='</div>';
+  h+='<div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveChildDemand(\''+parentId+'\')"><i class="fa-solid fa-plus mr-1"></i>创建子需求</button></div>';
+  m.innerHTML=h;
+  Scaffold.showModal('newModal');
+}
+
+function saveChildDemand(parentId){
+  var t=document.getElementById('fTitle').value.trim();if(!t){toast('请输入子需求标题','warning');return;}
+  var bg=document.getElementById('fBusinessBackground').value.trim();if(!bg){toast('请输入业务背景','warning');return;}
+  var us=document.getElementById('fUserStory').value.trim();if(!us){toast('请输入用户故事','warning');return;}
+  var ev=document.getElementById('fExpectedValue').value.trim();if(!ev){toast('请输入预期价值','warning');return;}
+  var assignee=document.getElementById('fAssignee').value;
+  var parent=demands.find(function(d){return d.id===parentId;});
+  var siblings=getChildren(parentId);
+  var newSuffix=siblings.length+1;
+  var newId=parentId+'-'+newSuffix;
+  var newDemand={
+    id:newId,title:t,type:document.getElementById('fType').value,
+    domain:document.getElementById('fDomain').value,priority:document.getElementById('fPriority').value,
+    status:'待评审',assignee:assignee,reporter:assignee||'张架构',
+    estHours:parseInt(document.getElementById('fHours').value)||0,
+    sprint:document.getElementById('fSprint').value,tags:[],
+    acceptance:document.getElementById('fAcceptance').value,
+    desc:document.getElementById('fDesc').value,
+    designLink:'',devLink:'',testLink:'',releaseLink:'',
+    parentId:parentId,version:'',
+    source:'1',expectedDate:document.getElementById('fExpectedDate').value,
+    businessBackground:bg,userStory:us,expectedValue:ev,
+    iterationType:'sub',iterationNote:'',
+    created:today(),updated:today(),comments:[],
+    history:[{time:now(),action:'创建子需求',user:assignee||'张架构'}]
+  };
+  var parentIdx=demands.findIndex(function(d){return d.id===parentId;});
+  demands.splice(parentIdx+siblings.length+1,0,newDemand);
+  expandedParents[parentId]=true;
+  toast(newId+' 子需求已创建','success');
+  closeModal();applyFilters();
+}
+
+function showNewModal(parentId){
+  editingId=parentId||null;
+  var m=document.getElementById('modalContent');
+  m.className='modal-box wide';
+  var typeOpts='<option value="场景">场景</option><option value="模块">模块</option><option value="组件">组件</option><option value="数据服务">数据服务</option><option value="模型服务">模型服务</option><option value="其他">其他</option>';
+  var srcOpts='<option value="1">业务方提报</option><option value="2">产品经理</option><option value="3">运营反馈</option><option value="4">客服反馈</option><option value="5">API 拓取</option><option value="6">管理层指令</option>';
+  var h='<div class="modal-header"><h3>新建需求'+(parentId?'（迭代）':'')+'</h3><div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div></div><div class="modal-body">';
+  h+='<div class="form-group"><label><span class="req">*</span>需求标题</label><input type="text" class="input" id="fTitle" name="title" placeholder="请输入需求标题" oninput="triggerDuplicateCheck(this.value)" autocomplete="off"></div>';
+  h+='<div id="duplicatePanel" style="display:none"></div>';
+  h+='<div class="form-row"><div class="form-group"><label><span class="req">*</span>需求类型</label><select class="filter-select" id="fType" name="type" onchange="switchTemplate()">'+typeOpts+'</select></div><div class="form-group"><label><span class="req">*</span>优先级</label><select class="filter-select" id="fPriority" name="priority"><option>中</option><option>紧急</option><option>高</option><option>低</option></select></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label><span class="req">*</span>业务域</label><select class="filter-select" id="fDomain" name="domain"><option>油气生产经营</option><option>油气新能源</option><option>炼化新材料</option><option>销售</option><option>天然气销售</option><option>海外油气</option><option>国际贸易</option><option>油田技术服务</option><option>工程建设</option><option>装备制造</option><option>运输物流</option></select></div><div class="form-group"><label>负责人</label><select class="filter-select" id="fAssignee" name="assignee"><option></option><option>张架构</option><option>李业务</option><option>王技术</option><option>赵工程</option><option>孙分析</option><option>周运维</option></select></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label><span class="req">*</span>需求来源</label><select class="filter-select" id="fSource" name="source">'+srcOpts+'</select></div><div class="form-group"><label>期望上线</label><input type="date" class="input" id="fExpectedDate" name="expectedDate"></div></div>';
+  h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-user-tag" style="color:var(--brand)"></i>需求提出方</div>';
+  h+='<div class="form-row"><div class="form-group"><label>提出人名字</label><input type="text" class="input" id="fReporterName" name="reporterName" placeholder="请输入提出人姓名"></div><div class="form-group"><label>单位</label><input type="text" class="input" id="fReporterUnit" name="reporterUnit" placeholder="如：油气生产部"></div></div>';
+  h+='<div class="form-group"><label>部门</label><input type="text" class="input" id="fReporterDept" name="reporterDept" placeholder="如：数字化中心"></div>';
+  h+='</div>';
+  h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-chart-line" style="color:oklch(45% 0.22 290)"></i>业务分析</div>';
+  h+='<div class="form-group"><label><span class="req">*</span>业务背景</label><textarea id="fBusinessBackground" name="businessBackground" class="textarea" style="height:72px" placeholder="描述该需求的业务背景、解决什么问题..."></textarea></div>';
+  h+='<div class="form-group"><label><span class="req">*</span>用户故事</label><textarea id="fUserStory" name="userStory" class="textarea" style="height:64px" placeholder="作为...我希望...以便..."></textarea></div>';
+  h+='<div class="form-group"><label><span class="req">*</span>预期价值</label><textarea id="fExpectedValue" name="expectedValue" class="textarea" style="height:64px" placeholder="预期带来的业务价值或改善..."></textarea></div>';
+  h+='</div>';
+  h+='<div id="typeSpecificFields"></div>';
+  h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-code-branch" style="color:oklch(55% 0.10 185)"></i>迭代信息</div>';
+  h+='<div class="form-row"><div class="form-group"><label>迭代类型</label><select class="filter-select" id="fIterationType" name="iterationType" onchange="toggleParentField()"><option value="new">全新需求</option><option value="minor">V1.x 小迭代</option><option value="major">V2.0 重大迭代</option></select></div><div class="form-group" id="parentField" style="display:none"><label>父需求</label><input type="text" class="input" id="fParentId" name="parentId" placeholder="输入父需求编号"></div></div>';
+  h+='<div class="form-group"><label>迭代说明</label><textarea id="fIterationNote" name="iterationNote" class="textarea" style="height:56px" placeholder="迭代改动点说明..."></textarea></div>';
+  h+='</div>';
+  h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-note-sticky" style="color:var(--amber)"></i>补充信息</div>';
+  h+='<div class="form-group"><label>验收标准</label><textarea id="fAcceptance" name="acceptance" class="textarea" style="height:56px" placeholder="可验证的验收条件..."></textarea></div>';
+  h+='<div class="form-group"><label>预估工时(h)</label><input type="number" class="input" id="fHours" name="hours" value="40"></div>';
+  h+='<div class="form-group"><label>需求描述</label><textarea id="fDesc" name="desc" class="textarea" style="height:64px" placeholder="补充说明..."></textarea></div>';
+  h+='</div>';
+  h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-link"></i>阶段性成果链接</div>';
+  h+='<div class="form-row"><div class="form-group"><label><i class="fa-solid fa-pencil-ruler mr-1" style="color:oklch(45% 0.22 290)"></i>设计文档</label><input type="text" class="input" id="fDesignLink" name="designLink" placeholder="Axure/蓝湖等设计链接"></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label><i class="fa-solid fa-code mr-1" style="color:var(--brand)"></i>开发地址</label><input type="text" class="input" id="fDevLink" name="devLink" placeholder="Git 仓库地址"></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label><i class="fa-solid fa-vial mr-1" style="color:var(--amber)"></i>测试地址</label><input type="text" class="input" id="fTestLink" name="testLink" placeholder="测试环境地址"></div></div>';
+  h+='<div class="form-row"><div class="form-group"><label><i class="fa-solid fa-rocket mr-1" style="color:var(--success)"></i>发布地址</label><input type="text" class="input" id="fReleaseLink" name="releaseLink" placeholder="生产环境地址"></div></div>';
+  h+='</div></div>';
+  h+='<div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDemand()">保存</button></div>';
+  m.innerHTML=h;
+  Scaffold.showModal('newModal');
+  if(parentId){document.getElementById('fParentId').value=parentId;document.getElementById('fIterationType').value='minor';toggleParentField();}
+}
+
+function showEdit(id){
+  editingId=id;var x=demands.find(function(d){return d.id===id;});if(!x)return;
+  var m=document.getElementById('modalContent');m.className='modal-box wide';
+  var reporterName='',reporterUnit='',reporterDept='';
+  if(x.reporter){
+    if(typeof x.reporter==='object'){reporterName=x.reporter.name||'';reporterUnit=x.reporter.unit||'';reporterDept=x.reporter.dept||'';}
+    else{reporterName=x.reporter;}
+  }
+  m.innerHTML='<div class="modal-header"><h3>编辑 '+id+'</h3><div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div></div><div class="modal-body">'+
+    '<div class="form-group"><label><span class="req">*</span>需求标题</label><input type="text" class="input" id="fTitle" name="title" value="'+x.title+'"></div>'+
+    '<div class="form-row"><div class="form-group"><label><span class="req">*</span>类型</label><select class="filter-select" id="fType" name="type"><option'+(x.type==='场景'?' selected':'')+'>场景</option><option'+(x.type==='模块'?' selected':'')+'>模块</option><option'+(x.type==='组件'?' selected':'')+'>组件</option><option'+(x.type==='数据服务'?' selected':'')+'>数据服务</option><option'+(x.type==='模型服务'?' selected':'')+'>模型服务</option><option'+(x.type==='其他'?' selected':'')+'>其他</option></select></div><div class="form-group"><label><span class="req">*</span>优先级</label><select class="filter-select" id="fPriority" name="priority"><option'+(x.priority==='中'?' selected':'')+'>中</option><option'+(x.priority==='紧急'?' selected':'')+'>紧急</option><option'+(x.priority==='高'?' selected':'')+'>高</option><option'+(x.priority==='低'?' selected':'')+'>低</option></select></div></div>'+
+    '<div class="form-row"><div class="form-group"><label><span class="req">*</span>业务域</label><select class="filter-select" id="fDomain" name="domain"><option'+(x.domain==='油气生产经营'?' selected':'')+'>油气生产经营</option><option'+(x.domain==='油气新能源'?' selected':'')+'>油气新能源</option><option'+(x.domain==='炼化新材料'?' selected':'')+'>炼化新材料</option><option'+(x.domain==='销售'?' selected':'')+'>销售</option><option'+(x.domain==='天然气销售'?' selected':'')+'>天然气销售</option><option'+(x.domain==='海外油气'?' selected':'')+'>海外油气</option><option'+(x.domain==='国际贸易'?' selected':'')+'>国际贸易</option><option'+(x.domain==='油田技术服务'?' selected':'')+'>油田技术服务</option><option'+(x.domain==='工程建设'?' selected':'')+'>工程建设</option><option'+(x.domain==='装备制造'?' selected':'')+'>装备制造</option><option'+(x.domain==='运输物流'?' selected':'')+'>运输物流</option></select></div><div class="form-group"><label>负责人</label><select class="filter-select" id="fAssignee" name="assignee"><option'+(x.assignee==='张架构'?' selected':'')+'>张架构</option><option'+(x.assignee==='李业务'?' selected':'')+'>李业务</option><option'+(x.assignee==='王技术'?' selected':'')+'>王技术</option><option'+(x.assignee==='赵工程'?' selected':'')+'>赵工程</option><option'+(x.assignee==='孙分析'?' selected':'')+'>孙分析</option><option'+(x.assignee==='周运维'?' selected':'')+'>周运维</option></select></div></div>'+
+    '<div class="form-row"><div class="form-group"><label>状态</label><select class="filter-select" id="fStatus" name="status"><option'+(x.status==='待评审'?' selected':'')+'>待评审</option><option'+(x.status==='设计中'?' selected':'')+'>设计中</option><option'+(x.status==='已上线'?' selected':'')+'>已上线</option><option'+(x.status==='已驳回'?' selected':'')+'>已驳回</option></select></div><div class="form-group"><label>工时(h)</label><input type="number" class="input" id="fHours" name="hours" value="'+x.estHours+'"></div></div>'+
+    '<div style="border-top:1px solid #E0E4E8;padding-top:12px;margin-top:8px"><div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#181818"><i class="fa-solid fa-user-tag mr-1" style="color:var(--brand)"></i>需求提出方</div>'+
+    '<div class="form-row"><div class="form-group"><label>提出人名字</label><input type="text" class="input" id="fReporterName" name="reporterName" value="'+reporterName+'" placeholder="请输入提出人姓名"></div><div class="form-group"><label>单位</label><input type="text" class="input" id="fReporterUnit" name="reporterUnit" value="'+reporterUnit+'" placeholder="如：油气生产部"></div></div>'+
+    '<div class="form-group"><label>部门</label><input type="text" class="input" id="fReporterDept" name="reporterDept" value="'+reporterDept+'" placeholder="如：数字化中心"></div></div>'+
+    '<div class="form-group"><label>验收标准</label><textarea id="fAcceptance" name="acceptance">'+(x.acceptance||'')+'</textarea></div>'+
+    '<div class="form-group"><label>描述</label><textarea id="fDesc" name="desc" style="height:72px">'+(x.desc||'')+'</textarea></div>'+
+    '<div style="border-top:1px solid #E0E4E8;padding-top:12px;margin-top:8px"><div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#181818">阶段性成果链接</div>'+
+    '<div class="form-row"><div class="form-group"><label><i class="fa-solid fa-pencil-ruler mr-1" style="color:oklch(45% 0.22 290)"></i>设计文档</label><input type="text" class="input" id="fDesignLink" name="designLink" value="'+(x.designLink||'')+'" placeholder="Axure/蓝湖等设计链接"></div></div>'+
+    '<div class="form-row"><div class="form-group"><label><i class="fa-solid fa-code mr-1" style="color:var(--brand)"></i>开发地址</label><input type="text" class="input" id="fDevLink" name="devLink" value="'+(x.devLink||'')+'" placeholder="Git仓库地址"></div></div>'+
+    '<div class="form-row"><div class="form-group"><label><i class="fa-solid fa-vial mr-1" style="color:var(--amber)"></i>测试地址</label><input type="text" class="input" id="fTestLink" name="testLink" value="'+(x.testLink||'')+'" placeholder="测试环境地址"></div></div>'+
+    '<div class="form-row"><div class="form-group"><label><i class="fa-solid fa-rocket mr-1" style="color:var(--success)"></i>发布地址</label><input type="text" class="input" id="fReleaseLink" name="releaseLink" value="'+(x.releaseLink||'')+'" placeholder="生产环境地址"></div></div>'+
+    '</div></div>'+
+    '<div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDemand()">保存</button></div>';
+  Scaffold.showModal('newModal');
+}
+
+function saveDemand(){
+  var t=document.getElementById('fTitle').value.trim();if(!t){alert('请输入需求标题');return;}
+  var bg=document.getElementById('fBusinessBackground').value.trim();if(!bg){alert('请输入业务背景');return;}
+  var us=document.getElementById('fUserStory').value.trim();if(!us){alert('请输入用户故事');return;}
+  var ev=document.getElementById('fExpectedValue').value.trim();if(!ev){alert('请输入预期价值');return;}
+  var assignee=document.getElementById('fAssignee').value;
+  var type=document.getElementById('fType').value;
+  var iterationType=document.getElementById('fIterationType').value;
+  var parentId=document.getElementById('fParentId').value.trim();
+  var iterationNote=document.getElementById('fIterationNote').value.trim();
+  if(parentId&&iterationType!='new'){if(!checkParentDemandExists(parentId))return;}
+  if(editingId){
+    for(var i=0;i<demands.length;i++){
+      if(demands[i].id===editingId){
+        var oldStatus=demands[i].status;
+        var newStatus=document.getElementById('fStatus').value;
+        demands[i].title=t;demands[i].type=type;demands[i].priority=document.getElementById('fPriority').value;
+        demands[i].domain=document.getElementById('fDomain').value;demands[i].assignee=assignee;demands[i].status=newStatus;
+        demands[i].source=document.getElementById('fSource').value;
+        demands[i].expectedDate=document.getElementById('fExpectedDate').value;
+        demands[i].businessBackground=bg;demands[i].userStory=us;demands[i].expectedValue=ev;
+        demands[i].estHours=parseInt(document.getElementById('fHours').value)||0;
+        demands[i].acceptance=document.getElementById('fAcceptance').value;demands[i].desc=document.getElementById('fDesc').value;
+        demands[i].iterationType=iterationType;demands[i].parentId=parentId;demands[i].iterationNote=iterationNote;
+        demands[i].version=generateVersion(parentId,iterationType);
+        demands[i].designLink=document.getElementById('fDesignLink').value.trim();
+        demands[i].devLink=document.getElementById('fDevLink').value.trim();
+        demands[i].testLink=document.getElementById('fTestLink').value.trim();
+        demands[i].releaseLink=document.getElementById('fReleaseLink').value.trim();
+        demands[i].updated=today();
+        var rName=document.getElementById('fReporterName');
+        if(rName){
+          var rUnit=document.getElementById('fReporterUnit');
+          var rDept=document.getElementById('fReporterDept');
+          demands[i].reporter={name:rName.value.trim()||assignee,unit:rUnit?rUnit.value.trim():'',dept:rDept?rDept.value.trim():''};
+        }
+        if(oldStatus!==newStatus&&demands[i].history){demands[i].history.push({time:now(),action:'变更为'+newStatus,user:assignee});}
+        break;
+      }
+    }
+    toast(editingId+' 已更新','success');
+  }else{
+    var n=String(demands.length+1).padStart(4,'0');
+    var newId='DMD-'+n;
+    var rNameEl=document.getElementById('fReporterName');
+    var reporterObj={name:assignee,unit:'',dept:''};
+    if(rNameEl){
+      reporterObj.name=rNameEl.value.trim()||assignee;
+      reporterObj.unit=document.getElementById('fReporterUnit')?document.getElementById('fReporterUnit').value.trim():'';
+      reporterObj.dept=document.getElementById('fReporterDept')?document.getElementById('fReporterDept').value.trim():'';
+    }
+    var newDemand={
+      id:newId,title:t,type:type,domain:document.getElementById('fDomain').value,priority:document.getElementById('fPriority').value,
+      status:'待评审',assignee:assignee,reporter:reporterObj,estHours:parseInt(document.getElementById('fHours').value)||0,
+      sprint:'',tags:[],acceptance:document.getElementById('fAcceptance').value,desc:document.getElementById('fDesc').value,
+      designLink:document.getElementById('fDesignLink').value.trim(),devLink:document.getElementById('fDevLink').value.trim(),
+      testLink:document.getElementById('fTestLink').value.trim(),releaseLink:document.getElementById('fReleaseLink').value.trim(),
+      created:today(),updated:today(),comments:[],
+      history:[{time:now(),action:'创建',user:assignee}],
+      source:document.getElementById('fSource').value,expectedDate:document.getElementById('fExpectedDate').value,
+      businessBackground:bg,userStory:us,expectedValue:ev,
+      iterationType:iterationType,parentId:parentId,iterationNote:iterationNote,
+      version:generateVersion(parentId,iterationType)
+    };
+    demands.unshift(newDemand);
+    toast(newId+' 已创建','success');
+  }
+  closeModal();applyFilters();
+}
+
+function showDetail(id){
+  var x=demands.find(function(d){return d.id===id;});if(!x)return;
+  var sc=sColors[x.status]?sColors[x.status].split('|'):['#F5F5F5','#999'];
+  var tc=typeColors[x.type]?typeColors[x.type].split('|'):['#999','#F5F5F5'];
+  var tags=x.tags&&x.tags.length>0?x.tags.map(function(t){return '<span class="tag" style="background:#E8F0FE;color:#4A7DE0">'+t+'</span>';}).join(''):'<span style="color:#999">无</span>';
+  var linksHtml='';
+  if(x.designLink)linksHtml+='<div class="link-item"><i class="fa-solid fa-pencil-ruler" style="color:oklch(45% 0.22 290);width:14px"></i><span class="link-url"><a href="'+x.designLink+'" target="_blank" class="detail-link">'+x.designLink+'</a></span><span class="link-date">设计文档</span></div>';
+  if(x.devLink)linksHtml+='<div class="link-item"><i class="fa-solid fa-code" style="color:var(--brand);width:14px"></i><span class="link-url"><a href="'+x.devLink+'" target="_blank" class="detail-link">'+x.devLink+'</a></span><span class="link-date">开发地址</span></div>';
+  if(x.testLink)linksHtml+='<div class="link-item"><i class="fa-solid fa-vial" style="color:var(--amber);width:14px"></i><span class="link-url"><a href="'+x.testLink+'" target="_blank" class="detail-link">'+x.testLink+'</a></span><span class="link-date">测试地址</span></div>';
+  if(x.releaseLink)linksHtml+='<div class="link-item"><i class="fa-solid fa-rocket" style="color:var(--success);width:14px"></i><span class="link-url"><a href="'+x.releaseLink+'" target="_blank" class="detail-link">'+x.releaseLink+'</a></span><span class="link-date">发布地址</span></div>';
+  if(!linksHtml)linksHtml='<div style="color:#999;font-size:12px">暂无成果链接，请在编辑中添加</div>';
+  var historyHtml='';
+  if(x.history&&x.history.length>0){
+    var colors={'创建':'#4A7DE0','评审通过':'#52C41A','开始设计':'#722ED1','开始开发':'#13C2C2','完成测试':'#FA8C16','发布上线':'#52C41A','评审驳回':'#FF4D4F','变更为设计中':'#4A7DE0','变更为已上线':'#52C41A','变更为已驳回':'#FF4D4F','变更为待评审':'#FAAD14'};
+    for(var hi=0;hi<x.history.length;hi++){
+      var hiItem=x.history[hi];
+      var dotColor=colors[hiItem.action]||'#999';
+      historyHtml+='<div class="timeline-item"><div class="timeline-dot" style="background:'+dotColor+'"></div><div class="timeline-content"><div class="time">'+hiItem.time+'</div><div class="text"><b>'+hiItem.user+'</b> '+hiItem.action+'</div></div></div>';
+    }
+  }else{
+    historyHtml='<div style="color:#999;font-size:12px;text-align:center;padding:20px">暂无变更记录</div>';
+  }
+  var isLocked=(x.status==='已驳回' || x.status==='已上线');
+  var parentDemand=x.parentId?demands.find(function(d){return d.id===x.parentId;}):null;
+  var childDemands=!x.parentId?demands.filter(function(d){return d.parentId===x.id;}):[];
+  var dupPanel=document.getElementById('duplicatePanel');
+  var showBackButton=dupPanel&&dupPanel.style.display==='block';
+  var h='<div class="detail-header"><div>';
+  h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+  if(x.parentId){
+    h+='<span class="child-badge"><i class="fa-solid fa-code-branch" style="font-size:9px;margin-right:2px"></i>子需求</span>';
+  }else if(childDemands.length>0){
+    h+='<span style="display:inline-block;padding:1px 8px;background:#EEF2FF;color:#4A7DE0;border-radius:3px;font-size:10px;font-weight:600"><i class="fa-solid fa-layer-group" style="font-size:9px;margin-right:2px"></i>主需求</span>';
+  }
+  h+='<h3 style="margin:0">'+x.title+'</h3>';
+  h+='</div>';
+  h+='<span style="font-size:11px;color:#999;font-family:monospace">'+x.id+'</span>';
+  h+='</div><div style="display:flex;gap:8px;align-items:center">';
+  if(showBackButton){
+    h+='<button class="btn btn-sm" style="background:#722ED1;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:12px" onclick="backToNewModal()"><i class="fa-solid fa-arrow-left mr-1"></i>返回新建</button>';
+  }
+  var canCreateIteration=(x.status==='已上线');
+  h+='<button class="btn btn-sm" style="background:#4A7DE0;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:12px" onclick="goEditFromDetail(\''+x.id+'\')"><i class="fa-solid fa-pen-to-square mr-1"></i>'+(isLocked?'查看':'编辑')+'</button>';
+  if(canCreateIteration){
+    h+='<button class="btn btn-sm" style="background:#722ED1;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:12px" onclick="createIterationFromLocked(\''+x.id+'\')"><i class="fa-solid fa-code-branch mr-1"></i>创建迭代</button>';
+  }
+  if(!x.parentId && x.status!=='已驳回'){
+    h+='<button class="btn btn-sm" style="background:#13C2C2;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:12px" onclick="closeDetail();setTimeout(function(){showNewChildModal(\'' + x.id + '\')},100)"><i class="fa-solid fa-plus mr-1"></i>新建子需求</button>';
+  }
+  h+='<div class="modal-close" onclick="closeDetail()"><i class="fa-solid fa-xmark"></i></div></div></div>';
+  var allVersions=demands.filter(function(d){return d.parentId===x.id&&d.iterationType!=='sub'||(d.id===x.id&&d.parentId);});
+  var hasVersions=allVersions.length>0;
+  h+='<div class="tabs"><div class="tab active" onclick="switchTab(this)">基本信息</div><div class="tab" onclick="switchTab(this)">成果链接</div>';
+  if(childDemands.length>0){
+    h+='<div class="tab" onclick="switchTab(this)">子需求 <span class="badge" style="background:#13C2C2;color:#fff;margin-left:4px">'+childDemands.length+'</span></div>';
+  }
+  if(hasVersions){
+    h+='<div class="tab" onclick="switchTab(this)">迭代版本 <span class="badge" style="background:#722ED1;color:#fff;margin-left:4px">'+allVersions.length+'</span></div>';
+  }
+  h+='<div class="tab" onclick="switchTab(this)">变更历史</div><div class="tab" onclick="switchTab(this)">评论</div></div>';
+  h+='<div class="tab-content active" id="tab-info">';
+  if(parentDemand){
+    var ptc=typeColors[parentDemand.type]?typeColors[parentDemand.type].split('|'):['#999','#F5F5F5'];
+    h+='<div style="background:#FFF7E6;border-left:3px solid #FA8C16;border-radius:0 4px 4px 0;padding:8px 12px;margin-bottom:8px;cursor:pointer" onclick="closeDetail();setTimeout(function(){showDetail(\''+parentDemand.id+'\')},100)">';
+    h+='<div style="font-size:11px;color:#999;margin-bottom:3px"><i class="fa-solid fa-layer-group mr-1"></i>所属主需求</div>';
+    h+='<div style="display:flex;align-items:center;gap:6px"><span style="font-family:monospace;font-size:11px;color:#4A7DE0">'+parentDemand.id+'</span>';
+    h+='<span class="tag" style="background:'+ptc[1]+';color:'+ptc[0]+'">'+parentDemand.type+'</span>';
+    h+='<span style="font-size:12px;font-weight:500;color:#181818">'+parentDemand.title+'</span>';
+    h+='<i class="fa-solid fa-arrow-right" style="color:#999;font-size:10px;margin-left:auto"></i></div></div>';
+  }
+  h+='<div class="detail-row"><div class="detail-label">类型</div><div class="detail-value"><span class="tag" style="background:'+tc[1]+';color:'+tc[0]+'">'+x.type+'</span></div></div>';
+  h+='<div class="detail-row"><div class="detail-label">业务域</div><div class="detail-value">'+x.domain+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">优先级</div><div class="detail-value">'+badge(pColors,x.priority)+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">状态</div><div class="detail-value">'+badge(sColors,x.status)+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">负责人</div><div class="detail-value">'+(x.assignee||'<span style="color:#999">评审后指定</span>')+'</div></div>';
+  if(x.reporter){
+    var rName='',rUnit='',rDept='';
+    if(typeof x.reporter==='object'){rName=x.reporter.name||'';rUnit=x.reporter.unit||'';rDept=x.reporter.dept||'';}
+    else{rName=x.reporter;}
+    var rText=rName;
+    if(rUnit||rDept){rText+=' <span style="color:#999;font-size:11px">('+(rUnit||'')+(rDept&&rUnit?' / ':'')+(rDept||'')+')</span>';}
+    h+='<div class="detail-row"><div class="detail-label">提出方</div><div class="detail-value">'+rText+'</div></div>';
+  }
+  if(x.source)h+='<div class="detail-row"><div class="detail-label">来源</div><div class="detail-value"><b>'+(sourceNames[x.source]||x.source)+'</b><br><span style="font-size:11px;color:#666">'+(sourceDescs[x.source]||'')+'</span></div></div>';
+  h+='<div class="detail-row"><div class="detail-label">工时</div><div class="detail-value">'+(x.estHours?x.estHours+'h':'-')+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">标签</div><div class="detail-value">'+tags+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">创建</div><div class="detail-value">'+x.created+'</div></div>';
+  if(x.acceptance)h+='<div class="detail-row"><div class="detail-label">验收</div><div class="detail-value">'+x.acceptance+'</div></div>';
+  if(x.desc)h+='<div class="detail-row" style="border:none"><div class="detail-label">描述</div><div class="detail-value" style="line-height:1.5">'+x.desc+'</div></div>';
+  h+='</div>';
+  h+='<div class="tab-content" id="tab-links">'+linksHtml+'</div>';
+  if(childDemands.length>0){
+    h+='<div class="tab-content" id="tab-children">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+    h+='<div style="font-size:13px;font-weight:600;color:#181818"><i class="fa-solid fa-sitemap mr-2" style="color:oklch(55% 0.10 185)"></i>子需求列表（'+childDemands.length+'个）</div>';
+    h+='<button class="btn btn-sm" style="background:#13C2C2;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;padding:4px 12px" onclick="closeDetail();setTimeout(function(){showNewChildModal(\'' + x.id + '\')},100)"><i class="fa-solid fa-plus mr-1"></i>新建子需求</button>';
+    h+='</div>';
+    for(var ci2=0;ci2<childDemands.length;ci2++){
+      var ch=childDemands[ci2];
+      var ctc=typeColors[ch.type]?typeColors[ch.type].split('|'):['#999','#F5F5F5'];
+      h+='<div style="padding:10px 12px;background:#fff;border:1px solid #E8EDF5;border-radius:6px;margin-bottom:8px;cursor:pointer;" onmouseover="this.style.borderColor=\'#4A7DE0\'" onmouseout="this.style.borderColor=\'#E8EDF5\'" onclick="showDetail(\''+ch.id+'\')">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+        '<span style="font-family:monospace;font-size:11px;color:#999">'+ch.id+'</span>'+
+        '<span class="tag" style="background:'+ctc[1]+';color:'+ctc[0]+'">'+ch.type+'</span>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:6px">'+badge(pColors,ch.priority)+badge(sColors,ch.status)+'</div></div>'+
+        '<div style="font-size:12px;font-weight:500;color:#181818;margin-bottom:3px">'+ch.title+'</div>'+
+        '<div style="font-size:11px;color:#999;display:flex;gap:12px">'+
+        '<span><i class="fa-regular fa-user mr-1"></i>'+(ch.assignee||'待指定')+'</span>'+
+        '<span><i class="fa-regular fa-clock mr-1"></i>'+(ch.estHours?ch.estHours+'h':'-')+'</span>'+
+        '<span><i class="fa-regular fa-calendar mr-1"></i>'+ch.created+'</span>'+
+        '</div></div>';
+    }
+    h+='</div>';
+  }
+  h+='<div class="tab-content" id="tab-history">'+historyHtml+'</div>';
+  if(hasVersions){
+    h+='<div class="tab-content" id="tab-versions">';
+    h+='<div style="margin-bottom:12px;font-size:13px;font-weight:600;color:#181818">迭代版本链</div>';
+    h+='<div style="padding:12px;background:var(--surface-subtle);border-radius:8px;margin-bottom:8px">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+    h+='<div><span style="font-size:12px;color:#4A7DE0;font-weight:600">'+(x.version||'V1.0')+'</span> <span style="font-size:12px;color:#666">'+x.title+'</span></div>';
+    h+='<div>'+badge(sColors,x.status)+' <span style="font-size:11px;color:#999;margin-left:8px">'+x.created+'</span></div>';
+    h+='</div>';
+    if(x.iterationNote)h+='<div style="font-size:12px;color:#666;margin-top:6px">变更：'+x.iterationNote+'</div>';
+    h+='</div>';
+    var children=demands.filter(function(d){return d.parentId===x.id;});
+    if(children.length>0){
+      for(var vi=0;vi<children.length;vi++){
+        var v=children[vi];
+        h+='<div style="padding:12px;background:#fff;border:1px solid #E0E4E8;border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="showDetail(\''+v.id+'\')">';
+        h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+        h+='<div><span style="font-size:12px;color:#722ED1;font-weight:600">'+(v.version||'V1.0')+'</span> <span style="font-size:12px;color:#666">'+v.title+'</span></div>';
+        h+='<div>'+badge(sColors,v.status)+' <span style="font-size:11px;color:#999;margin-left:8px">'+v.created+'</span></div>';
+        h+='</div>';
+        if(v.iterationNote)h+='<div style="font-size:12px;color:#666;margin-top:6px">变更：'+v.iterationNote+'</div>';
+        h+='</div>';
+      }
+    }else{
+      h+='<div style="text-align:center;color:#999;padding:20px;font-size:12px">暂无迭代版本</div>';
+    }
+    h+='</div>';
+  }
+  h+='<div class="tab-content" id="tab-comments">';
+  if(!x.comments)x.comments=[];
+  for(var ci=0;ci<x.comments.length;ci++){var cc=x.comments[ci];h+='<div style="padding:8px 0;border-bottom:1px solid #F0F0F0"><b style="font-size:12px">'+cc.user+'</b> <span style="font-size:10px;color:#999">'+cc.time+'</span><div style="font-size:12px;color:#333;margin-top:2px">'+cc.text+'</div></div>';}
+  h+='<div style="padding:10px 0;border-bottom:1px solid #F0F0F0"><b style="font-size:12px">'+x.reporter+'</b> <span style="font-size:10px;color:#999">'+x.created+'</span><div style="font-size:12px;color:#333;margin-top:2px">需求已提交，请评审。</div></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:12px;align-items:center"><div class="w-7 h-7 rounded-full flex items-center justify-center text-xs flex-shrink-0" style="background:#E8F0FE;color:#4A7DE0">'+(x.assignee?x.assignee[0]:'张')+'</div><input type="text" id="detailCommentInput" class="input flex-1" placeholder="输入评论..." style="height:32px" onkeydown="if(event.key==\'Enter\'){addDemandComment(\''+x.id+'\',this.value);}"></div>';
+  h+='</div>';
+  document.getElementById('detailPanel').innerHTML=h;
+  document.getElementById('detailOverlay').classList.add('show');
+
+  // 在操作栏添加页面导航按钮
+  var headerDiv = document.querySelector('.detail-panel .modal-close');
+  if (headerDiv) {
+    var navDiv = document.createElement('div');
+    navDiv.style.cssText = 'display:flex;gap:6px;margin-right:8px';
+    navDiv.innerHTML = '<button class="btn btn-sm" style="background:var(--brand);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;padding:4px 10px" onclick="event.stopPropagation();goToReview(\'' + x.id + '\',\'' + x.title.replace(/'/g, '') + '\')"><i class="fa-solid fa-clipboard-list mr-1"></i>发起评审</button>';
+    headerDiv.parentNode.insertBefore(navDiv, headerDiv);
+  }
+}
+
+function switchTab(el){
+  var tabs=el.parentElement.querySelectorAll('.tab');
+  var idx=0;for(var i=0;i<tabs.length;i++){tabs[i].classList.toggle('active',tabs[i]===el);if(tabs[i]===el)idx=i;}
+  var contents=el.closest('.detail-panel').querySelectorAll('.tab-content');
+  for(var i=0;i<contents.length;i++)contents[i].classList.toggle('active',i===idx);
+  var panel=el.closest('.detail-panel');
+  if(panel){
+    panel.style.maxHeight=(window.innerHeight-120)+'px';
+  }
+}
+
+function triggerDuplicateCheck(query){
+  var panel=document.getElementById('duplicatePanel');
+  if(!query||query.length<2){if(panel)panel.style.display='none';return;}
+  var matches=[];
+  var keywords=query.trim().split(/\s+/);
+  for(var i=0;i<demands.length;i++){
+    var d=demands[i];
+    var score=0;
+    for(var j=0;j<keywords.length;j++){
+      if(d.title.indexOf(keywords[j])!==-1)score+=20;
+      if(d.desc&&d.desc.indexOf(keywords[j])!==-1)score+=10;
+    }
+    if(score>0){matches.push({demand:d,score:score});}
+  }
+  matches.sort(function(a,b){return b.score-a.score;});
+  if(matches.length===0){if(panel)panel.style.display='none';return;}
+  showDuplicatePanel(matches.slice(0,5),query);
+}
+
+function showDuplicatePanel(matches,query){
+  var panel=document.getElementById('duplicatePanel');
+  if(!panel)return;
+  var h='<div style="font-weight:600;color:#FAAD14;margin-bottom:8px"><i class="fa-solid fa-triangle-exclamation"></i> 发现'+matches.length+'条相似需求</div>';
+  for(var i=0;i<matches.length;i++){
+    var m=matches[i];
+    var canCreateIteration=(m.demand.status==='已上线');
+    h+='<div style="padding:8px;margin-bottom:4px;background:#fff;border-radius:6px;border:1px solid #F0F0F0">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:500;cursor:pointer" onclick="viewDuplicate(\''+m.demand.id+'\')">'+m.demand.id+'</span><span style="font-size:10px;color:#FAAD14">相似度'+m.score+'%</span></div>';
+    h+='<div style="font-size:12px;color:#333;margin-top:4px;cursor:pointer" onclick="viewDuplicate(\''+m.demand.id+'\')">'+m.demand.title+'</div>';
+    h+='<div style="font-size:11px;color:#999">状态：'+badge(sColors,m.demand.status)+' · '+m.demand.type+' · '+m.demand.created+'</div>';
+    if(canCreateIteration){
+      h+='<div style="margin-top:6px"><button class="btn btn-sm" style="background:#4A7DE0;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer" onclick="createIteration(\''+m.demand.id+'\')"><i class="fa-solid fa-code-branch"></i> 基于此需求创建迭代</button></div>';
+    }else{
+      h+='<div style="margin-top:6px;font-size:11px;color:#999"><i class="fa-solid fa-circle-info"></i> 该需求未上线，暂不能创建迭代</div>';
+    }
+    h+='</div>';
+  }
+  h+='<div style="margin-top:8px;font-size:12px;color:#999">点击查看详情，或继续新建</div>';
+  panel.innerHTML=h;
+  panel.style.display='block';
+}
+
+function viewDuplicate(id){showDetail(id);}
+function backToNewModal(){closeDetail();setTimeout(function(){var modal=document.getElementById('newModal');if(modal){modal.style.display='flex';modal.style.zIndex='2000';}},100);}
+function goEditFromDetail(id){closeDetail();setTimeout(function(){showEdit(id);},100);}
+function addDemandComment(id,text){text=text.trim();if(!text)return;var d=demands.find(function(x){return x.id===id;});if(!d)return;if(!d.comments)d.comments=[];d.comments.push({user:d.assignee||'张架构',time:now(),text:text});showDetail(id);toast('评论已发送','success');}
+function createIteration(parentId){closeDetail();closeModal();setTimeout(function(){showNewModal(parentId);},150);}
+function createIterationFromLocked(parentId){closeDetail();setTimeout(function(){showNewModal(parentId);var modal=document.getElementById('newModal');if(modal)modal.style.zIndex='2000';},150);}
+
+function switchTemplate(){
+  var t=document.getElementById('fType').value;
+  var c=document.getElementById('typeSpecificFields');
+  if(!c)return;
+  var h='';
+  if(t==='场景'){
+    h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-users" style="color:var(--brand)"></i>场景信息</div>';
+    h+='<div class="form-group"><label>用户角色</label><input type="text" class="input" id="fRole" name="role" placeholder="例如：业务分析师、项目经理"></div>';
+    h+='<div class="form-group"><label>使用场景</label><textarea id="fScenario" name="scenario" style="height:64px" placeholder="描述用户在什么场景下使用..."></textarea></div>';
+    h+='</div>';
+  }else if(t==='模块'){
+    h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-cube" style="color:oklch(45% 0.22 290)"></i>模块信息</div>';
+    h+='<div class="form-group"><label>模块范围</label><textarea id="fScope" name="scope" style="height:64px" placeholder="描述该模块的功能范围和边界..."></textarea></div>';
+    h+='<div class="form-group"><label>依赖关系</label><input type="text" class="input" id="fDependencies" name="dependencies" placeholder="依赖的其他模块或系统"></div>';
+    h+='</div>';
+  }else if(t==='组件'){
+    h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-puzzle-piece" style="color:oklch(55% 0.10 185)"></i>组件信息</div>';
+    h+='<div class="form-group"><label>组件类型</label><select class="filter-select" id="fComponentType" name="componentType"><option>UI组件</option><option>业务组件</option><option>技术组件</option><option>数据组件</option></select></div>';
+    h+='<div class="form-group"><label>复用范围</label><textarea id="fReuseScope" name="reuseScope" style="height:56px" placeholder="描述该组件可被哪些业务域复用..."></textarea></div>';
+    h+='</div>';
+  }else if(t==='数据服务'){
+    h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-database" style="color:var(--amber)"></i>数据服务信息</div>';
+    h+='<div class="form-group"><label>数据源</label><input type="text" class="input" id="fDataSource" name="dataSource" placeholder="数据来源系统或表"></div>';
+    h+='<div class="form-group"><label>数据范围</label><textarea id="fDataScope" name="dataScope" style="height:56px" placeholder="描述数据覆盖的范围和周期..."></textarea></div>';
+    h+='</div>';
+  }else if(t==='模型服务'){
+    h+='<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-brain" style="color:var(--success)"></i>模型服务信息</div>';
+    h+='<div class="form-group"><label>模型类型</label><select class="filter-select" id="fModelType" name="modelType"><option>预测模型</option><option>分类模型</option><option>推荐模型</option><option>优化模型</option></select></div>';
+    h+='<div class="form-group"><label>模型说明</label><textarea id="fModelDesc" name="modelDesc" style="height:56px" placeholder="描述模型算法、输入输出..."></textarea></div>';
+    h+='</div>';
+  }
+  c.innerHTML=h;
+}
+
+function toggleParentField(){
+  var t=document.getElementById('fIterationType').value;
+  var p=document.getElementById('parentField');
+  if(p)p.style.display=(t==='minor'||t==='major')?'block':'none';
+}
+
+function generateVersion(parentId,iterationType){
+  if(!parentId||iterationType==='new')return'V1.0';
+  var parent=demands.find(function(d){return d.id===parentId;});
+  if(!parent)return'V1.0';
+  var current=parent.version||'V1.0';
+  var major=parseInt(current.substring(1).split('.')[0]);
+  var minor=parseInt(current.substring(1).split('.')[1]||0);
+  if(iterationType==='major')return'V'+(major+1)+'.0';
+  return'V'+major+'.'+(minor+1);
+}
+
+function checkParentDemandExists(id){
+  var exists=demands.some(function(d){return d.id===id;});
+  if(!exists){alert('父需求不存在：'+id);return false;}
+  return true;
+}
+
+function exportData(){
+  var csv='\uFEFF编号,标题,类型,业务域,优先级,状态,负责人,工时,日期\n';
+  for(var i=0;i<filtered.length;i++){var x=filtered[i];csv+=x.id+','+x.title+','+x.type+','+x.domain+','+x.priority+','+x.status+','+x.assignee+','+(x.estHours||0)+','+x.created+'\n';}
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='需求台账_'+new Date().toISOString().split('T')[0]+'.csv';a.click();URL.revokeObjectURL(a.href);
+  toast('已导出 '+filtered.length+' 条','success');
+}
+
+function resetFilters(){
+  document.getElementById('filterType').value='';document.getElementById('filterDomain').value='';document.getElementById('filterStatus').value='';
+  document.getElementById('filterPriority').value='';document.getElementById('filterSearch').value='';
+  currentPage=1;applyFilters();toast('已重置','info');
+}
+
+// ===== 初始化 =====
+initExpandState();
+applyFilters();
+
+// 从发布流程回读需求状态更新
+var updates = Scaffold.getDemandStatusUpdates();
+if (updates) {
+  var hasUpdates = false;
+  Object.keys(updates).forEach(function(demandId) {
+    var u = updates[demandId];
+    var target = demands.find(function(d) { return d.id === demandId; });
+    if (target) {
+      target.status = u.status || '已上线';
+      target.version = u.version || target.version;
+      if (!target.history) target.history = [];
+      target.history.push({time: u.updatedAt || now(), action: '发布上线', user: '系统'});
+      hasUpdates = true;
+    }
+  });
+  if (hasUpdates) {
+    setTimeout(function(){ applyFilters(); toast('已应用发布流程中的需求状态更新', 'success'); }, 300);
+  }
+}
+
+// 检查来自评审管理的状态更新
+try {
+  var updateRaw = localStorage.getItem('demand_status_update');
+  if (updateRaw) {
+    var update = JSON.parse(updateRaw);
+    localStorage.removeItem('demand_status_update');
+    var target = demands.find(function(d){ return d.id === update.demandId; });
+    if (target && target.status !== update.newStatus) {
+      target.status = update.newStatus;
+      if (!target.history) target.history = [];
+      target.history.push({time: update.timestamp, action: '评审通过', user: '系统'});
+      setTimeout(function(){ applyFilters(); toast('需求 ' + update.demandId + ' 状态已自动更新为「' + update.newStatus + '」', 'success'); }, 300);
+    }
+  }
+} catch(e) {}
+
+// 脚手架初始化：渲染侧边栏和面包屑（自动生成 group→subgroup→item 三级分级）
+Scaffold.init('demand');
+</script>
+</body></html>

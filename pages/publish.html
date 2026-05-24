@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+<script src="../_shared/scaffold.js"></script>
+<style>
+/* ===== Layout ===== */
+.tab-bar{display:flex;border-bottom:1px solid var(--border-default);margin-bottom:0;}
+.tab-btn{padding:10px 18px;font-size:13px;cursor:pointer;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-tertiary);transition:all .15s;font-family:inherit;white-space:nowrap;}
+.tab-btn:hover{color:var(--text-primary);background:var(--surface-subtle);}
+.tab-btn.active{border-bottom-color:var(--brand);color:var(--brand);font-weight:500;}
+.tab-panel{display:none;padding:16px;max-height:520px;overflow-y:auto;}
+.tab-panel.active{display:block;}
+.service-item{padding:12px 14px;cursor:pointer;border-bottom:1px solid var(--border-default);transition:background .12s;}
+.service-item:hover{background:var(--surface-subtle);}
+.service-item.selected{background:rgba(99,102,241,0.08);border-left:3px solid var(--brand);}
+.service-list{max-height:520px;overflow-y:auto;}
+.rule-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-default);font-size:13px;}
+.rule-row:last-child{border-bottom:none;}
+.sim-node-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border-default);font-size:13px;}
+.traffic-bar{height:20px;border-radius:4px;display:flex;overflow:hidden;margin:6px 0;font-size:11px;color:#fff;font-weight:500;}
+.traffic-bar .prod{background:var(--brand);display:flex;align-items:center;justify-content:center;}
+.traffic-bar .canary{background:var(--amber);display:flex;align-items:center;justify-content:center;}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:12px 0;}
+.metric-card{background:var(--surface-subtle);padding:12px;border-radius:8px;text-align:center;}
+.metric-card .val{font-size:22px;font-weight:700;}
+.version-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-default);font-size:13px;}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border-default);border-top-color:var(--brand);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:30px;right:30px;background:#1e293b;color:#fff;padding:12px 22px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transform:translateY(12px);transition:all .25s;}
+.toast.show{opacity:1;transform:translateY(0);}
+.code-block{background:#1e293b;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:12px;font-family:monospace;white-space:pre-wrap;margin:6px 0;}
+.modal-overlay{z-index:3000;}
+</style>
+<title>领域服务编排成果预览发布 — 业务中台装配环境</title>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1"><div class="flex items-center gap-2 mr-6"><div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div><span class="text-white font-semibold text-base">业务中台装配环境</span></div>
+    <nav class="flex items-center gap-0.5"><a href="../index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>首页</span></a><a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a><a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a><a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a><a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a><a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a><a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a></nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm"><div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div><div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div><div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div><span class="text-xs">张架构</span></div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+<main class="flex-1 overflow-y-auto">
+  <div id="breadcrumb"></div>
+  <!-- ====== Top Nav Bar ====== -->
+  <div class="flex items-center justify-between px-4 py-1.5 border-b" style="border-color:var(--border-subtle);background:var(--surface-raised)">
+    <a href="workspace.html" class="text-xs" style="color:var(--brand)"><i class="fa-solid fa-arrow-left"></i> 返回工作台</a>
+    <div class="flex items-center gap-2 text-xs">
+      <a href="model-service.html" style="color:var(--text-tertiary)">← 上一步：智能能力适配</a>
+      <span style="color:var(--border-default)">|</span>
+      <span style="color:var(--text-tertiary);font-weight:500">完成全链路</span>
+    </div>
+  </div>
+  <!-- ====== Page Hero ====== -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Preview &amp; Publish</div>
+      <h2>领域服务编排成果预览发布</h2>
+      <div class="subtitle">编排成果在线仿真 · 架构合规自查 · 灰度发布与流量切分 · 版本管控回滚 · 一键发布</div>
+    </div>
+    <button class="btn btn-primary" onclick="openPublishModal()"><i class="fa-solid fa-rocket mr-2"></i>发布</button>
+  </div>
+  <div class="flex items-center gap-3 mb-3">
+    <span class="text-xs font-medium" style="color:var(--text-secondary)">当前需求：</span>
+    <div id="demandBar"></div>
+  </div>
+  <!-- ====== Top Stat Cards ====== -->
+  <div class="page-section" style="padding-bottom:0;">
+    <div class="grid grid-cols-5 gap-3 mb-4 anim-stagger">
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">待发布</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statDraft">0</div></div><div class="stat-icon-wrap amber"><i class="fa-solid fa-file-pen"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">已发布</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statPublished">0</div></div><div class="stat-icon-wrap green"><i class="fa-solid fa-check-circle"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">灰度中</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statCanary">0</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-cloud-arrow-up"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">仿真通过率</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statSimRate">—</div></div><div class="stat-icon-wrap" style="background:oklch(90% 0.1 220)"><i class="fa-solid fa-flask text-sm" style="color:oklch(48% 0.16 260)"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">合规通过率</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statCompRate">—</div></div><div class="stat-icon-wrap" style="background:oklch(90% 0.1 160)"><i class="fa-solid fa-shield-halved text-sm" style="color:oklch(48% 0.15 160)"></i></div></div></div>
+    </div>
+  </div>
+  <!-- ====== Main 2-column Layout ====== -->
+  <div class="page-section" style="padding-top:0;">
+    <div class="flex gap-4" style="min-height:560px;">
+      <!-- LEFT: Service List -->
+      <div class="card" style="width:35%;flex-shrink:0;">
+        <div class="p-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+          <div class="text-sm font-semibold"><i class="fa-solid fa-diagram-project mr-2" style="color:var(--brand)"></i>编排服务列表</div>
+          <div class="flex items-center gap-2">
+            <select class="filter-select text-xs" id="domainFilter" onchange="applyDomainFilter()" style="padding:3px 8px;font-size:11px;">
+              <option value="">全部业务域</option>
+              <option value="勘探开发">勘探开发</option>
+              <option value="钻井工程">钻井工程</option>
+              <option value="采油工程">采油工程</option>
+              <option value="油气集输">油气集输</option>
+              <option value="炼化生产">炼化生产</option>
+              <option value="储运管理">储运管理</option>
+              <option value="安全环保">安全环保</option>
+              <option value="设备管理">设备管理</option>
+              <option value="质量管理">质量管理</option>
+              <option value="经营管理">经营管理</option>
+            </select>
+          </div>
+        </div>
+        <div class="service-list" id="serviceList"></div>
+      </div>
+      <!-- RIGHT: Detail Panel with 4 tabs -->
+      <div class="card flex-1 flex flex-col">
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="tabSim" onclick="switchTab('tabSim',this)"><i class="fa-solid fa-flask mr-1"></i>仿真校验</button>
+          <button class="tab-btn" data-tab="tabCompliance" onclick="switchTab('tabCompliance',this)"><i class="fa-solid fa-shield-halved mr-1"></i>合规检查</button>
+          <button class="tab-btn" data-tab="tabCanary" onclick="switchTab('tabCanary',this)"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>灰度发布</button>
+          <button class="tab-btn" data-tab="tabVersion" onclick="switchTab('tabVersion',this)"><i class="fa-solid fa-clock-rotate-left mr-1"></i>版本管理</button>
+        </div>
+        <!-- Tab 1: 仿真校验 -->
+        <div class="tab-panel active" id="tabSim">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold"><i class="fa-solid fa-play mr-1" style="color:var(--brand)"></i>仿真运行</div>
+            <div class="flex gap-2">
+              <button class="btn btn-primary btn-sm" id="btnSimulate" onclick="runSimulation()"><i class="fa-solid fa-play mr-1"></i>执行仿真</button>
+              <button class="btn btn-sm" onclick="exportSimReport()" style="background:var(--surface-subtle)"><i class="fa-solid fa-download mr-1"></i>导出报告</button>
+            </div>
+          </div>
+          <div id="simStatus" class="text-xs mb-2" style="color:var(--text-tertiary)">就绪 — 请选择左侧编排服务后执行仿真</div>
+          <div id="simSpinner" class="hidden flex items-center gap-2 mb-2"><span class="spinner"></span><span class="text-xs" style="color:var(--text-secondary)">仿真运行中，正在编排节点...</span></div>
+          <div id="simResult"></div>
+        </div>
+        <!-- Tab 2: 合规检查 -->
+        <div class="tab-panel" id="tabCompliance">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold"><i class="fa-solid fa-list-check mr-1" style="color:var(--success)"></i>架构合规自查</div>
+            <button class="btn btn-sm" id="btnRecheck" onclick="runComplianceCheck()" style="background:var(--surface-subtle)"><i class="fa-solid fa-rotate mr-1"></i>重新检测</button>
+          </div>
+          <div id="complianceRules"></div>
+          <div class="mt-3">
+            <div class="text-xs font-semibold mb-2" style="color:var(--text-primary)">合规自查问题清单</div>
+            <div id="complianceIssues"></div>
+          </div>
+        </div>
+        <!-- Tab 3: 灰度发布 -->
+        <div class="tab-panel" id="tabCanary">
+          <div class="text-sm font-semibold mb-3"><i class="fa-solid fa-sliders mr-1" style="color:var(--amber)"></i>灰度策略配置</div>
+          <div class="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <div class="text-xs mb-1" style="color:var(--text-secondary)">灰度方式</div>
+              <select class="filter-select" id="canaryMode" onchange="updateTrafficVisual()"><option value="ratio">按比例</option><option value="org">按单位</option><option value="domain">按业务域</option><option value="userGroup">按用户组</option></select>
+            </div>
+            <div id="canaryRatioWrap">
+              <div class="text-xs mb-1" style="color:var(--text-secondary)">灰度比例</div>
+              <div class="flex items-center gap-2"><input type="range" id="canaryRatio" min="5" max="100" value="20" step="5" oninput="updateTrafficVisual();document.getElementById('canaryRatioLabel').textContent=this.value+'%'" style="flex:1"><span class="text-xs font-medium" id="canaryRatioLabel" style="min-width:36px">20%</span></div>
+            </div>
+          </div>
+          <div id="canaryScopeWrap" class="hidden mb-3">
+            <div class="text-xs mb-1" style="color:var(--text-secondary)">灰度范围</div>
+            <select class="filter-select" id="canaryScopeSelect"></select>
+          </div>
+          <div class="mb-3">
+            <div class="text-xs mb-1" style="color:var(--text-secondary)">流量切分</div>
+            <div class="traffic-bar"><div class="canary" id="barCanary" style="width:20%">灰度 20%</div><div class="prod" id="barProd" style="width:80%">生产 80%</div></div>
+          </div>
+          <div class="flex gap-2 mb-3">
+            <button class="btn btn-primary btn-sm" onclick="startCanary()"><i class="fa-solid fa-play mr-1"></i>开始灰度</button>
+            <button class="btn btn-danger btn-sm" onclick="endCanary()"><i class="fa-solid fa-stop mr-1"></i>结束灰度</button>
+          </div>
+          <div id="canaryMetrics" class="hidden">
+            <div class="text-xs font-semibold mb-2" style="color:var(--text-primary)">灰度发布效果评估</div>
+            <div class="metrics-grid">
+              <div class="metric-card"><div class="text-xs mb-1" style="color:var(--text-tertiary)">错误率对比</div><div class="val" style="color:var(--success)" id="metricErrRate">0.12% / 0.08%</div><div class="text-xs" style="color:var(--text-tertiary)">灰度 / 生产</div></div>
+              <div class="metric-card"><div class="text-xs mb-1" style="color:var(--text-tertiary)">延迟对比</div><div class="val" style="color:var(--brand)" id="metricLatency">42ms / 38ms</div><div class="text-xs" style="color:var(--text-tertiary)">灰度 / 生产</div></div>
+              <div class="metric-card"><div class="text-xs mb-1" style="color:var(--text-tertiary)">调用次数</div><div class="val" style="color:var(--text-primary)" id="metricInvoke">1,247 / 5,832</div><div class="text-xs" style="color:var(--text-tertiary)">灰度 / 生产</div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Tab 4: 版本管理 -->
+        <div class="tab-panel" id="tabVersion">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold"><i class="fa-solid fa-clock-rotate-left mr-1" style="color:var(--brand)"></i>版本历史</div>
+            <button class="btn btn-sm" onclick="showVersionDiff()" style="background:var(--surface-subtle)"><i class="fa-solid fa-code-compare mr-1"></i>版本对比</button>
+          </div>
+          <div id="versionHistory"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ====== Publish Modal ====== -->
+<div id="publishModal" class="fixed inset-0 bg-black bg-opacity-45 hidden items-center justify-center modal-overlay">
+  <div class="bg-white rounded-lg w-[520px] max-h-[80vh] overflow-hidden flex flex-col">
+    <div class="px-5 py-4 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+      <h3 class="text-base font-semibold"><i class="fa-solid fa-rocket mr-2" style="color:var(--brand)"></i>一键发布</h3>
+      <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100" onclick="closePublishModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <div class="text-xs mb-1" style="color:var(--text-secondary)">发布版本</div>
+        <input class="input w-full" id="pubVersion" placeholder="例如: v2.1.0" value="v2.1.0">
+      </div>
+      <div>
+        <div class="text-xs mb-1" style="color:var(--text-secondary)">发布说明 / Release Notes</div>
+        <textarea class="input w-full" id="pubNotes" rows="3" placeholder="本次发布的变更内容、影响范围等" style="resize:vertical;min-height:60px;">修复已知问题，优化编排节点性能</textarea>
+      </div>
+      <div>
+        <div class="text-xs mb-1" style="color:var(--text-secondary)">审批人</div>
+        <select class="filter-select w-full" id="pubApprover"><option value="李经理">李经理 — 架构组</option><option value="王技术">王技术 — 平台组</option><option value="赵工程">赵工程 — 数据组</option></select>
+      </div>
+      <div>
+        <div class="text-xs mb-1" style="color:var(--text-secondary)">发布环境</div>
+        <div class="flex gap-3"><label class="flex items-center gap-1 text-sm cursor-pointer"><input type="radio" name="pubEnv" value="test" checked> 测试环境</label><label class="flex items-center gap-1 text-sm cursor-pointer"><input type="radio" name="pubEnv" value="prod"> 生产环境</label></div>
+      </div>
+    </div>
+    <div class="px-5 py-3 border-t flex justify-end gap-2" style="border-color:var(--border-default)">
+      <button class="btn btn-sm" onclick="closePublishModal()" style="background:var(--surface-subtle)">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmPublish()"><i class="fa-solid fa-paper-plane mr-1"></i>确认发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Version Diff Modal ====== -->
+<div id="diffModal" class="fixed inset-0 bg-black bg-opacity-45 hidden items-center justify-center modal-overlay">
+  <div class="bg-white rounded-lg w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+    <div class="px-5 py-4 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+      <h3 class="text-base font-semibold"><i class="fa-solid fa-code-compare mr-2" style="color:var(--brand)"></i>版本对比</h3>
+      <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100" onclick="document.getElementById('diffModal').classList.add('hidden');document.getElementById('diffModal').classList.remove('flex');"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="p-4 space-y-3 overflow-y-auto" id="diffContent">
+      <div class="text-xs" style="color:var(--text-tertiary)">请先在版本管理中勾选两个版本进行对比</div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== DATA ======
+var ALL_DOMAINS = ['勘探开发','钻井工程','采油工程','油气集输','炼化生产','储运管理','安全环保','设备管理','质量管理','经营管理'];
+
+var services = [
+  {id:'S001',name:'钻井数据采集编排',domain:'钻井工程',version:'v1.2',nodeCount:8,status:'draft',lastModified:'2026-05-20 14:30',simPassRate:92,compPassRate:88,bizOwner:'王技术'},
+  {id:'S002',name:'油井压力监测编排',domain:'采油工程',version:'v2.1',nodeCount:12,status:'published',lastModified:'2026-05-19 09:15',simPassRate:97,compPassRate:95,bizOwner:'张架构'},
+  {id:'S003',name:'输油管线调度编排',domain:'油气集输',version:'v1.8',nodeCount:15,status:'canary',lastModified:'2026-05-18 16:40',simPassRate:88,compPassRate:82,bizOwner:'李业务'},
+  {id:'S004',name:'油气分离处理编排',domain:'炼化生产',version:'v2.0',nodeCount:20,status:'published',lastModified:'2026-05-17 11:20',simPassRate:99,compPassRate:96,bizOwner:'赵工程'},
+  {id:'S005',name:'储油罐液位监控编排',domain:'储运管理',version:'v1.5',nodeCount:6,status:'draft',lastModified:'2026-05-16 08:30',simPassRate:78,compPassRate:85,bizOwner:'孙趋势'},
+  {id:'S006',name:'天然气净化工艺编排',domain:'炼化生产',version:'v3.0',nodeCount:25,status:'rolled_back',lastModified:'2026-05-15 13:00',simPassRate:65,compPassRate:70,bizOwner:'周净化'},
+  {id:'S007',name:'原油蒸馏过程编排',domain:'炼化生产',version:'v2.3',nodeCount:18,status:'published',lastModified:'2026-05-14 10:45',simPassRate:94,compPassRate:91,bizOwner:'吴蒸馏'},
+  {id:'S008',name:'油田注水优化编排',domain:'采油工程',version:'v1.1',nodeCount:7,status:'draft',lastModified:'2026-05-13 15:10',simPassRate:82,compPassRate:79,bizOwner:'郑注水'},
+  {id:'S009',name:'采油平台安全监控编排',domain:'安全环保',version:'v2.2',nodeCount:14,status:'published',lastModified:'2026-05-12 09:00',simPassRate:100,compPassRate:98,bizOwner:'陈安全'},
+  {id:'S010',name:'管道泄露检测编排',domain:'安全环保',version:'v1.9',nodeCount:10,status:'canary',lastModified:'2026-05-11 17:30',simPassRate:91,compPassRate:87,bizOwner:'林检测'},
+  {id:'S011',name:'油气储运调度编排',domain:'储运管理',version:'v2.5',nodeCount:22,status:'published',lastModified:'2026-05-10 14:20',simPassRate:96,compPassRate:93,bizOwner:'刘调度'},
+  {id:'S012',name:'炼化反应控制编排',domain:'炼化生产',version:'v1.6',nodeCount:16,status:'draft',lastModified:'2026-05-09 11:55',simPassRate:73,compPassRate:68,bizOwner:'黄反应'},
+  {id:'S013',name:'油品质量分析编排',domain:'质量管理',version:'v2.0',nodeCount:9,status:'published',lastModified:'2026-05-08 08:10',simPassRate:95,compPassRate:97,bizOwner:'徐质检'},
+  {id:'S014',name:'海上平台通讯编排',domain:'勘探开发',version:'v1.3',nodeCount:11,status:'draft',lastModified:'2026-05-07 16:45',simPassRate:80,compPassRate:74,bizOwner:'马通讯'}
+];
+
+var selectedServiceIdx = -1;
+var isSimulating = false;
+var isCanaryActive = false;
+
+// Compliance rules data
+var complianceRules = [
+  {id:'R1',name:'架构规范版本',status:'pass',detail:'符合当前中台架构规范 v2.3 要求',severity:''},
+  {id:'R2',name:'跨域调用合规',status:'pass',detail:'所有跨域调用已通过API网关注册，符合安全策略',severity:''},
+  {id:'R3',name:'数据标准引用完整',status:'warning',detail:'引用数据标准版本 v1.8，部分字段映射不完整 (3/12)',severity:'low'},
+  {id:'R4',name:'组件版本兼容',status:'pass',detail:'所有组件版本已通过兼容性测试矩阵',severity:''},
+  {id:'R5',name:'协议一致性',status:'fail',detail:'节点 N7 (Modbus→OPC UA) 协议转换配置未通过一致性校验',severity:'high'},
+  {id:'R6',name:'安全策略配置',status:'pass',detail:'TLS 1.3 加密通道配置正确，身份认证机制完善',severity:''},
+  {id:'R7',name:'日志审计规范',status:'warning',detail:'3 个节点日志级别未统一配置为 info，建议调整',severity:'medium'},
+  {id:'R8',name:'异常处理覆盖',status:'fail',detail:'2 个编排分支缺少超时降级策略 (分支 B2, B5)',severity:'high'}
+];
+
+// Version history for each service
+var versionHistoryMap = {};
+
+function initVersionHistory(){
+  var versions = [
+    {ver:'v2.1.0',date:'2026-05-20 10:00',status:'published',publisher:'张架构'},
+    {ver:'v2.0.0',date:'2026-05-10 14:00',status:'published',publisher:'张架构'},
+    {ver:'v1.9.0',date:'2026-04-28 09:00',status:'canary',publisher:'王技术'},
+    {ver:'v1.8.0',date:'2026-04-15 16:00',status:'rolled_back',publisher:'李业务'},
+    {ver:'v1.7.0',date:'2026-03-30 11:00',status:'published',publisher:'赵工程'},
+    {ver:'v1.6.0',date:'2026-03-12 08:00',status:'offline',publisher:'孙趋势'}
+  ];
+  services.forEach(function(s){versionHistoryMap[s.id] = versions.slice();});
+}
+initVersionHistory();
+
+// ====== RENDER ======
+function render(){
+  updateStats();
+  renderServiceList();
+  if(selectedServiceIdx >= 0) renderServiceDetail(selectedServiceIdx);
+}
+function updateStats(){
+  var draft = services.filter(function(s){return s.status==='draft';}).length;
+  var published = services.filter(function(s){return s.status==='published';}).length;
+  var canary = services.filter(function(s){return s.status==='canary';}).length;
+  document.getElementById('statDraft').textContent = draft;
+  document.getElementById('statPublished').textContent = published;
+  document.getElementById('statCanary').textContent = canary;
+  var simTotal = 0, simPassTotal = 0, compTotal = 0, compPassTotal = 0;
+  services.forEach(function(s){
+    if(s.simPassRate != null){simTotal++; if(s.simPassRate >= 80) simPassTotal++;}
+    if(s.compPassRate != null){compTotal++; if(s.compPassRate >= 80) compPassTotal++;}
+  });
+  document.getElementById('statSimRate').textContent = simTotal > 0 ? Math.round(simPassTotal/simTotal*100)+'%' : '—';
+  document.getElementById('statCompRate').textContent = compTotal > 0 ? Math.round(compPassTotal/compTotal*100)+'%' : '—';
+}
+
+function renderServiceList(){
+  var filter = document.getElementById('domainFilter').value;
+  var list = document.getElementById('serviceList');
+  var filtered = filter ? services.filter(function(s){return s.domain===filter;}) : services;
+  var html = '';
+  filtered.forEach(function(s,idx){
+    var realIdx = services.indexOf(s);
+    var sel = realIdx === selectedServiceIdx ? ' selected' : '';
+    var statusMap = {draft:'草稿',published:'已发布',canary:'灰度中',rolled_back:'已回滚'};
+    var colorMap = {draft:'var(--amber)',published:'var(--success)',canary:'var(--brand)',rolled_back:'var(--danger)'};
+    html += '<div class="service-item'+sel+'" onclick="selectService('+realIdx+')">';
+    html += '<div class="flex items-center justify-between"><span class="text-sm font-medium" style="color:var(--text-primary)">'+s.name+'</span>';
+    html += '<span class="badge text-[10px]" style="background:'+colorMap[s.status]+'20;color:'+colorMap[s.status]+'">'+statusMap[s.status]+'</span></div>';
+    html += '<div class="flex items-center gap-3 mt-1 text-xs" style="color:var(--text-tertiary)"><span>'+s.domain+'</span><span>v'+s.version+'</span><span>'+s.nodeCount+' 节点</span><span>'+s.lastModified+'</span></div>';
+    html += '</div>';
+  });
+  if(!filtered.length) html = '<div class="text-center py-10 text-xs" style="color:var(--text-tertiary)"><i class="fa-solid fa-diagram-project text-2xl mb-2"></i><br>暂无匹配的编排服务</div>';
+  list.innerHTML = html;
+}
+
+function applyDomainFilter(){renderServiceList();}
+
+function selectService(idx){
+  selectedServiceIdx = idx;
+  renderServiceList();
+  renderServiceDetail(idx);
+}
+
+function renderServiceDetail(idx){
+  var s = services[idx];
+  if(!s) return;
+  // Reset all tab panels to show active state
+  // Sim tab:
+  document.getElementById('simStatus').textContent = '已选择: '+s.name+' | 版本: v'+s.version+' | 节点数: '+s.nodeCount;
+  document.getElementById('simStatus').style.color = 'var(--text-secondary)';
+  document.getElementById('simSpinner').classList.add('hidden');
+  document.getElementById('simResult').innerHTML = '<div class="text-xs mt-2" style="color:var(--text-tertiary)">点击"执行仿真"开始验证编排成果</div>';
+
+  // Compliance tab:
+  renderCompliance();
+
+  // Canary tab:
+  document.getElementById('canaryMetrics').classList.add('hidden');
+  updateTrafficVisual();
+
+  // Version tab:
+  renderVersionHistory(s.id);
+}
+
+// ====== TAB SWITCHING ======
+function switchTab(tabId, btn){
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById(tabId).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+// ====== SIMULATION ======
+function runSimulation(){
+  if(selectedServiceIdx < 0){showToast('请先选择一个编排服务');return;}
+  if(isSimulating) return;
+  isSimulating = true;
+  var btn = document.getElementById('btnSimulate');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:4px;"></span>仿真中';
+  document.getElementById('simSpinner').classList.remove('hidden');
+  document.getElementById('simStatus').textContent = '仿真运行中...';
+  document.getElementById('simResult').innerHTML = '';
+
+  var s = services[selectedServiceIdx];
+  var nodes = [];
+  for(var i=1;i<=s.nodeCount;i++){
+    var pass = Math.random() > 0.15;
+    var rt = (20 + Math.floor(Math.random() * 80)) + 'ms';
+    var err = pass ? '' : '节点超时 — '+(i%2===0?'数据格式异常':'响应码 503');
+    nodes.push({name:'节点 N'+i,status:pass?'✓':'✗',responseTime:rt,error:err});
+  }
+  var passCount = nodes.filter(function(n){return n.status==='✓';}).length;
+  var total = nodes.length;
+  var simTime = (1.2 + Math.random() * 2.3).toFixed(1);
+
+  setTimeout(function(){
+    isSimulating = false;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>执行仿真';
+    document.getElementById('simSpinner').classList.add('hidden');
+
+    var passRate = Math.round(passCount/total*100);
+    var globalStatus = passRate >= 80 ? '通过' : '不通过';
+    var globalColor = passRate >= 80 ? 'var(--success)' : 'var(--danger)';
+
+    var html = '<div class="sim-report">';
+    html += '<div class="flex items-center gap-3 mb-3"><span class="text-sm font-semibold">仿真运行报告</span><span class="badge" style="background:'+globalColor+'20;color:'+globalColor+'">'+globalStatus+'</span></div>';
+    html += '<div class="grid grid-cols-3 gap-2 mb-3 text-xs"><div><span style="color:var(--text-tertiary)">通过节点: </span><span style="color:var(--success);font-weight:500;">'+passCount+'/'+total+'</span></div><div><span style="color:var(--text-tertiary)">仿真耗时: </span><span>'+simTime+'s</span></div><div><span style="color:var(--text-tertiary)">通过率: </span><span style="color:'+globalColor+';font-weight:500;">'+passRate+'%</span></div></div>';
+    html += '<div class="text-xs font-semibold mb-1" style="color:var(--text-primary)">节点级仿真结果</div>';
+    html += '<div style="max-height:240px;overflow-y:auto;">';
+    nodes.forEach(function(n){
+      html += '<div class="sim-node-row"><span style="font-weight:500;min-width:70px;">'+n.name+'</span>';
+      html += '<span style="color:'+(n.status==='✓'?'var(--success)':'var(--danger)')+';font-weight:700;">'+n.status+'</span>';
+      html += '<span style="color:var(--text-tertiary);min-width:50px;">'+n.responseTime+'</span>';
+      html += '<span style="color:var(--danger);font-size:12px;">'+n.error+'</span></div>';
+    });
+    html += '</div></div>';
+    document.getElementById('simResult').innerHTML = html;
+    document.getElementById('simStatus').textContent = '仿真完成 — '+s.name+' | 通过率 '+passRate+'%';
+    document.getElementById('simStatus').style.color = passRate >= 80 ? 'var(--success)' : 'var(--danger)';
+    showToast('仿真执行完成 — '+passCount+'/'+total+' 节点通过');
+  }, 1500 + Math.random()*1000);
+}
+
+function exportSimReport(){
+  if(selectedServiceIdx < 0){showToast('请先执行仿真');return;}
+  var s = services[selectedServiceIdx];
+  showToast('仿真报告已导出: sim_report_'+s.id+'_'+Date.now()+'.pdf');
+}
+
+// ====== COMPLIANCE CHECK ======
+function renderCompliance(){
+  var rulesHtml = '';
+  complianceRules.forEach(function(r){
+    var icon = r.status==='pass' ? 'fa-check-circle' : r.status==='warning' ? 'fa-triangle-exclamation' : 'fa-circle-xmark';
+    var color = r.status==='pass' ? 'var(--success)' : r.status==='warning' ? 'var(--amber)' : 'var(--danger)';
+    rulesHtml += '<div class="rule-row"><div class="flex items-center gap-2"><i class="fa-solid '+icon+'" style="color:'+color+'"></i><span style="color:var(--text-primary)">'+r.name+'</span></div>';
+    rulesHtml += '<span class="badge text-[10px]" style="background:'+color+'20;color:'+color+'">'+r.status+'</span></div>';
+    rulesHtml += '<div class="text-xs ml-6 mb-2" style="color:var(--text-tertiary)">'+r.detail+'</div>';
+  });
+  document.getElementById('complianceRules').innerHTML = rulesHtml;
+
+  var issues = complianceRules.filter(function(r){return r.status==='fail'||r.status==='warning';});
+  var issuesHtml = '';
+  if(!issues.length){
+    issuesHtml = '<div class="text-xs" style="color:var(--success)"><i class="fa-solid fa-check-circle mr-1"></i>未发现合规问题</div>';
+  } else {
+    issues.forEach(function(r){
+      var sevColor = r.severity==='high'?'var(--danger)':r.severity==='medium'?'var(--amber)':'var(--text-tertiary)';
+      issuesHtml += '<div class="flex items-start gap-2 py-2 border-b text-xs" style="border-color:var(--border-default)">';
+      issuesHtml += '<span class="badge text-[10px] flex-shrink-0" style="background:'+sevColor+'20;color:'+sevColor+'">'+r.severity+'</span>';
+      issuesHtml += '<div><div style="color:var(--text-primary)">'+r.name+': '+r.detail+'</div>';
+      issuesHtml += '<div style="color:var(--text-tertiary)">建议: '+(r.severity==='high'?'立即修复，阻断发布':'安排在下一迭代修复')+'</div></div></div>';
+    });
+  }
+  document.getElementById('complianceIssues').innerHTML = issuesHtml;
+}
+
+function runComplianceCheck(){
+  var btn = document.getElementById('btnRecheck');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:4px;"></span>检测中';
+  var s = services[selectedServiceIdx] || services[0];
+  setTimeout(function(){
+    // Randomly update compliance results
+    complianceRules.forEach(function(r){
+      if(Math.random() > 0.7){
+        r.status = Math.random() > 0.5 ? 'pass' : (Math.random() > 0.5 ? 'warning' : 'fail');
+        if(r.status==='fail') r.severity='high';
+        else if(r.status==='warning') r.severity='medium';
+        else r.severity='';
+      }
+    });
+    renderCompliance();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-rotate mr-1"></i>重新检测';
+    showToast('合规检查完成 — '+complianceRules.filter(function(r){return r.status==='pass';}).length+'/'+complianceRules.length+' 项通过');
+  }, 1200);
+}
+
+// ====== CANARY RELEASE ======
+function updateTrafficVisual(){
+  var mode = document.getElementById('canaryMode').value;
+  var scopeWrap = document.getElementById('canaryScopeWrap');
+  var ratioWrap = document.getElementById('canaryRatioWrap');
+  if(mode === 'ratio'){
+    scopeWrap.classList.add('hidden');
+    ratioWrap.style.display = 'block';
+  } else {
+    ratioWrap.style.display = 'none';
+    scopeWrap.classList.remove('hidden');
+    var sel = document.getElementById('canaryScopeSelect');
+    var opts = mode === 'org' ? ['勘探事业部','开发事业部','炼化事业部','储运事业部','安全环保事业部'] :
+               mode === 'domain' ? ALL_DOMAINS : ['VIP用户组','内部测试组','A/B测试组'];
+    sel.innerHTML = opts.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
+  }
+  var ratio = parseInt(document.getElementById('canaryRatio').value);
+  document.getElementById('barCanary').style.width = ratio+'%';
+  document.getElementById('barCanary').textContent = '灰度 '+ratio+'%';
+  document.getElementById('barProd').style.width = (100-ratio)+'%';
+  document.getElementById('barProd').textContent = '生产 '+(100-ratio)+'%';
+}
+
+function startCanary(){
+  if(selectedServiceIdx < 0){showToast('请先选择一个编排服务');return;}
+  if(isCanaryActive){showToast('灰度已在进行中');return;}
+  isCanaryActive = true;
+  document.getElementById('canaryMetrics').classList.remove('hidden');
+  document.getElementById('metricErrRate').textContent = '0.12% / 0.08%';
+  document.getElementById('metricLatency').textContent = '42ms / 38ms';
+  document.getElementById('metricInvoke').textContent = '1,247 / 5,832';
+  var s = services[selectedServiceIdx];
+  s.status = 'canary';
+  render();
+  showToast('灰度发布已启动 — '+s.name+' | 流量切分比例: '+document.getElementById('canaryRatio').value+'%');
+}
+
+function endCanary(){
+  if(!isCanaryActive){showToast('当前没有活跃的灰度发布');return;}
+  isCanaryActive = false;
+  document.getElementById('canaryMetrics').classList.add('hidden');
+  if(selectedServiceIdx >= 0){
+    var s = services[selectedServiceIdx];
+    s.status = 'published';
+    // Add to version history
+    var vh = versionHistoryMap[s.id] || [];
+    vh.unshift({ver:'v'+s.version,date:new Date().toLocaleString(),status:'published',publisher:'张架构'});
+    versionHistoryMap[s.id] = vh;
+    render();
+  }
+  showToast('灰度发布结束，已全量发布至生产环境');
+}
+
+// ====== VERSION MANAGEMENT ======
+function renderVersionHistory(serviceId){
+  var vh = versionHistoryMap[serviceId] || [];
+  var html = '<table class="data-table" style="width:100%;"><thead><tr><th>版本</th><th>发布日期</th><th>状态</th><th>发布人</th><th>操作</th></tr></thead><tbody>';
+  vh.forEach(function(v){
+    var statusMap = {published:'已发布',canary:'灰度中',rolled_back:'已回滚',offline:'已下线'};
+    var colorMap = {published:'var(--success)',canary:'var(--brand)',rolled_back:'var(--danger)',offline:'var(--text-tertiary)'};
+    html += '<tr><td>'+v.ver+'</td><td>'+v.date+'</td>';
+    html += '<td><span class="badge text-[10px]" style="background:'+colorMap[v.status]+'20;color:'+colorMap[v.status]+'">'+statusMap[v.status]+'</span></td>';
+    html += '<td>'+v.publisher+'</td>';
+    html += '<td><div class="flex gap-1">';
+    if(v.status !== 'rolled_back' && v.status !== 'offline'){
+      html += '<button class="btn btn-sm text-[11px]" onclick="event.stopPropagation();rollbackToVersion(\''+v.ver+'\',\''+serviceId+'\')" style="background:var(--surface-subtle);padding:2px 8px;">回滚</button>';
+    }
+    if(v.status === 'published' || v.status === 'canary'){
+      html += '<button class="btn btn-sm text-[11px]" onclick="event.stopPropagation();offlineVersion(\''+v.ver+'\',\''+serviceId+'\')" style="background:oklch(90% 0.05 30);color:var(--danger);padding:2px 8px;">下线</button>';
+    }
+    html += '</div></td></tr>';
+  });
+  html += '</tbody></table>';
+  if(!vh.length) html = '<div class="text-center py-8 text-xs" style="color:var(--text-tertiary)">暂无版本历史</div>';
+  document.getElementById('versionHistory').innerHTML = html;
+}
+
+function rollbackToVersion(ver, serviceId){
+  if(!confirm('确认回滚到版本 '+ver+'？此操作将切换当前线上版本。')) return;
+  var vh = versionHistoryMap[serviceId] || [];
+  vh.forEach(function(v){
+    if(v.ver === ver) v.status = 'published';
+    else if(v.status === 'published' || v.status === 'canary') v.status = 'rolled_back';
+  });
+  vh.unshift({ver:ver+' (回滚)',date:new Date().toLocaleString(),status:'published',publisher:'张架构'});
+  versionHistoryMap[serviceId] = vh;
+  renderVersionHistory(serviceId);
+  showToast('已成功回滚至版本 '+ver);
+}
+
+function offlineVersion(ver, serviceId){
+  if(!confirm('确认将版本 '+ver+' 下线？下线后将不可用。')) return;
+  var vh = versionHistoryMap[serviceId] || [];
+  vh.forEach(function(v){if(v.ver === ver) v.status = 'offline';});
+  versionHistoryMap[serviceId] = vh;
+  renderVersionHistory(serviceId);
+  showToast('版本 '+ver+' 已下线');
+}
+
+function showVersionDiff(){
+  var modal = document.getElementById('diffModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  var diffHtml = '<div class="text-xs font-semibold mb-2" style="color:var(--text-primary)">v2.1.0 ↔ v2.0.0 差异对比</div>';
+  diffHtml += '<div class="code-block">+ 新增: 数据清洗节点 N9 (ETL 管道)\n+ 新增: 异常重试策略 (最多3次)\n~ 修改: 节点 N5 超时配置 30s→60s\n~ 修改: 日志级别 debug→info\n- 移除: 已废弃的节点 N3 (合并至 N4)</div>';
+  diffHtml += '<div class="text-xs mt-2" style="color:var(--text-tertiary)">共 5 处变更 | 影响范围: 中 | 兼容性: 向前兼容</div>';
+  document.getElementById('diffContent').innerHTML = diffHtml;
+}
+
+// ====== ONE-CLICK PUBLISH ======
+function openPublishModal(){
+  if(selectedServiceIdx < 0){showToast('请先选择一个编排服务');return;}
+  document.getElementById('publishModal').classList.remove('hidden');
+  document.getElementById('publishModal').classList.add('flex');
+}
+function closePublishModal(){
+  document.getElementById('publishModal').classList.add('hidden');
+  document.getElementById('publishModal').classList.remove('flex');
+}
+function confirmPublish(){
+  var ver = document.getElementById('pubVersion').value.trim();
+  if(!ver){showToast('请输入版本号');return;}
+  var notes = document.getElementById('pubNotes').value.trim();
+  var approver = document.getElementById('pubApprover').value;
+  var env = document.querySelector('input[name="pubEnv"]:checked');
+  var envLabel = env ? (env.value === 'test' ? '测试环境' : '生产环境') : '测试环境';
+  if(selectedServiceIdx < 0){showToast('请先选择服务');closePublishModal();return;}
+  var s = services[selectedServiceIdx];
+  s.status = 'published';
+  s.version = ver.replace(/^v/,'');
+  var vh = versionHistoryMap[s.id] || [];
+  vh.unshift({ver:ver,date:new Date().toLocaleString(),status:'published',publisher:'张架构'});
+  versionHistoryMap[s.id] = vh;
+  closePublishModal();
+  render();
+  showToast('发布成功! '+s.name+' | 版本: '+ver+' | 环境: '+envLabel+' | 审批人: '+approver);
+  // 回写需求状态与发布记录
+  var d = Scaffold.getCurrentDemand();
+  if (d) {
+    Scaffold.publishService(d.id, d.title, d.title + '服务', 'V1.0');
+    Scaffold.markStepCompleted('publish');
+  }
+}
+
+// ====== TOAST ======
+function showToast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if(window._toastTimer) clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(function(){t.classList.remove('show');}, 3000);
+}
+
+// ====== INIT ======
+document.addEventListener('DOMContentLoaded',function(){
+  render();
+  if(services.length > 0) selectService(0);
+  Scaffold.renderDemandBar();
+  Scaffold.markStepInProgress('publish');
+});
+</script>
+<script>
+Scaffold.init('publish');
+</script>
+</body>
+</html>

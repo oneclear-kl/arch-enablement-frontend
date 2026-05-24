@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+<script src="../_shared/scaffold.js"></script>
+<style>
+/* ===== Layout ===== */
+.cap-layout{display:flex;gap:0;height:calc(100vh - 48px - 48px);overflow:hidden}
+.cap-left{width:40%;flex-shrink:0;border-right:1px solid var(--border-strong);display:flex;flex-direction:column;overflow:hidden}
+.cap-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ===== Category Tabs ===== */
+.cat-tabs{display:flex;gap:2px;padding:12px 16px 0;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border-default)}
+.cat-tab{padding:8px 14px;font-size:12px;white-space:nowrap;border-radius:8px 8px 0 0;cursor:pointer;transition:all .15s;border:1px solid transparent;border-bottom:none;color:var(--text-tertiary);position:relative;top:1px}
+.cat-tab:hover{color:var(--text-primary);background:var(--surface-subtle)}
+.cat-tab.active{color:var(--brand);background:var(--surface-base);border-color:var(--border-default);font-weight:600}
+.cat-tab i{margin-right:6px;font-size:11px}
+
+/* ===== AI Model List ===== */
+.ai-model-list{flex:1;overflow-y:auto;padding:12px 16px}
+.ai-model-card{padding:12px 14px;border-radius:10px;border:1px solid var(--border-default);margin-bottom:8px;cursor:pointer;transition:all .15s;background:var(--surface-base);position:relative}
+.ai-model-card:hover{border-color:var(--brand);box-shadow:0 2px 8px rgba(99,102,241,.08)}
+.ai-model-card.selected{border-color:var(--brand);box-shadow:0 0 0 2px rgba(99,102,241,.15)}
+.ai-model-card .model-tag{font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface-subtle);color:var(--text-tertiary)}
+.ai-model-card .model-metrics{display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--text-tertiary)}
+.ai-model-card .model-metrics span{display:flex;align-items:center;gap:4px}
+
+/* ===== Right Panel Tabs ===== */
+.right-tabs{display:flex;gap:0;border-bottom:1px solid var(--border-default);flex-shrink:0;padding:0 16px}
+.right-tab{padding:10px 18px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;color:var(--text-tertiary)}
+.right-tab:hover{color:var(--text-primary)}
+.right-tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+.right-tab i{margin-right:6px;font-size:12px}
+
+/* ===== Config Panel ===== */
+.config-panel{flex:1;overflow-y:auto;padding:16px 20px}
+.config-section{margin-bottom:20px}
+.config-section h4{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.config-section h4 i{font-size:12px;color:var(--brand)}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.config-field{display:flex;flex-direction:column;gap:4px}
+.config-field label{font-size:11px;color:var(--text-tertiary);font-weight:500}
+.config-field .input{font-size:12px;padding:6px 10px}
+
+/* ===== Trigger Conditions ===== */
+.trigger-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.trigger-option{padding:10px 12px;border-radius:8px;border:1px solid var(--border-default);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary)}
+.trigger-option:hover{border-color:var(--brand)}
+.trigger-option.selected{background:var(--brand-subtle);border-color:var(--brand);color:var(--brand)}
+
+/* ===== Usage Metrics ===== */
+.metric-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.metric-card{padding:12px;border-radius:8px;border:1px solid var(--border-default);text-align:center}
+.metric-card .metric-value{font-size:20px;font-weight:700;color:var(--text-primary)}
+.metric-card .metric-label{font-size:10px;color:var(--text-tertiary);margin-top:2px}
+.metric-card .metric-icon{font-size:18px;margin-bottom:4px}
+
+/* ===== Daily Chart ===== */
+.chart-area{padding:12px;border-radius:8px;border:1px solid var(--border-default);margin-bottom:16px}
+.chart-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.chart-bar{height:20px;border-radius:4px;min-width:4px;transition:width .4s}
+.chart-bar.brand{background:var(--brand)}
+.chart-bar.green{background:var(--success)}
+.chart-label{font-size:11px;color:var(--text-tertiary);width:40px;flex-shrink:0;text-align:right}
+.chart-val{font-size:11px;color:var(--text-secondary);width:36px;flex-shrink:0;text-align:right}
+
+/* ===== CB Status ===== */
+.cb-indicator{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:14px}
+.cb-indicator.closed{background:var(--success-subtle);color:var(--success)}
+.cb-indicator.open{background:oklch(92% 0.08 25);color:var(--danger)}
+.cb-indicator.half_open{background:oklch(94% 0.09 85);color:var(--amber)}
+.cb-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.cb-dot.closed{background:var(--success)}
+.cb-dot.open{background:var(--danger)}
+.cb-dot.half_open{background:var(--amber)}
+
+/* ===== Degradation Table ===== */
+.degradation-table{width:100%;border-collapse:collapse;font-size:12px}
+.degradation-table th{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border-default);color:var(--text-tertiary);font-weight:500}
+.degradation-table td{padding:8px 10px;border-bottom:1px solid var(--border-subtle);color:var(--text-secondary)}
+.degradation-table tr:hover td{background:var(--surface-subtle)}
+
+/* ===== Billing ===== */
+.billing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.billing-card{padding:12px;border-radius:8px;border:1px solid var(--border-default);text-align:center}
+.billing-card .bill-value{font-size:18px;font-weight:700;color:var(--text-primary)}
+.billing-card .bill-label{font-size:10px;color:var(--text-tertiary);margin-top:2px}
+
+/* ===== No Selection ===== */
+.no-selection{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary);gap:8px}
+.no-selection i{font-size:40px;opacity:.3}
+.no-selection p{font-size:13px}
+
+/* ===== Selected Model Header ===== */
+.selected-model-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:var(--surface-subtle);margin-bottom:16px}
+.selected-model-header .sm-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0}
+.selected-model-header .sm-info{flex:1}
+.selected-model-header .sm-name{font-size:14px;font-weight:600;color:var(--text-primary)}
+.selected-model-header .sm-meta{font-size:11px;color:var(--text-tertiary)}
+
+/* ===== Action Buttons Row ===== */
+.action-row{display:flex;gap:8px;margin-top:16px}
+
+/* ===== Invocation Log ===== */
+.invocation-log td{font-size:11px;padding:6px 8px}
+.invocation-log th{font-size:10px;padding:6px 8px}
+
+/* ===== Category Label ===== */
+.cat-label{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--surface-subtle);color:var(--text-tertiary);display:inline-block}
+
+/* Scrollbar */
+.ai-model-list::-webkit-scrollbar,.config-panel::-webkit-scrollbar{width:4px}
+.ai-model-list::-webkit-scrollbar-thumb,.config-panel::-webkit-scrollbar-thumb{background:var(--border-default);border-radius:4px}
+</style>
+<title>领域服务智能能力适配 — 业务中台装配环境</title>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1"><div class="flex items-center gap-2 mr-6"><div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div><span class="text-white font-semibold text-base">业务中台装配环境</span></div>
+    <nav class="flex items-center gap-0.5"><a href="../index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>首页</span></a><a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a><a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a><a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a><a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a><a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a><a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a></nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm"><div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div><div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div><div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div><span class="text-xs">张架构</span></div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+<main class="flex-1 overflow-y-auto" style="padding-bottom:0">
+  <div id="breadcrumb"></div>
+  <!-- ====== Top Nav Bar ====== -->
+  <div class="flex items-center justify-between px-4 py-1.5 border-b" style="border-color:var(--border-subtle);background:var(--surface-raised)">
+    <a href="workspace.html" class="text-xs" style="color:var(--brand)"><i class="fa-solid fa-arrow-left"></i> 返回工作台</a>
+    <div class="flex items-center gap-2 text-xs">
+      <a href="rules.html" style="color:var(--text-tertiary)">← 上一步：编排规则配置</a>
+      <span style="color:var(--border-default)">|</span>
+      <a href="publish.html" style="color:var(--brand);font-weight:500">下一步：预览发布 →</a>
+    </div>
+  </div>
+  <!-- ===== Page Header ===== -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Domain Intelligence Adapter</div>
+      <h2>领域服务智能能力适配</h2>
+      <div class="subtitle">将 AI 能力以领域服务形式嵌入业务编排，实现智能模型按需引入、调用监控与异常降级</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-3 mb-3">
+    <span class="text-xs font-medium" style="color:var(--text-secondary)">当前需求：</span>
+    <div id="demandBar"></div>
+  </div>
+  <!-- ===== Stat Cards ===== -->
+  <div class="page-section anim-fade-up" style="padding-top:0">
+    <div class="grid grid-cols-5 gap-4 mb-4 anim-stagger">
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">智能能力总数</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statTotal">0</div></div><div class="stat-icon-wrap purple"><i class="fa-solid fa-brain"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">已引入编排</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statIntroduced">0</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-link"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">今日调用</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statTodayCalls">0</div></div><div class="stat-icon-wrap green"><i class="fa-solid fa-chart-simple"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">本月费用</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statMonthCost">¥0</div></div><div class="stat-icon-wrap amber"><i class="fa-solid fa-coins"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">熔断中</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statCbOpen">0</div></div><div class="stat-icon-wrap danger"><i class="fa-solid fa-shield-halved"></i></div></div></div>
+    </div>
+    <!-- ===== Main Layout: Left Capabilities + Right Config ===== -->
+    <div class="card" style="overflow:hidden;padding:0;height:calc(100vh - 48px - 48px - 48px - 180px)">
+      <div class="cap-layout">
+        <!-- Left: Capability Browser -->
+        <div class="cap-left">
+          <div class="cat-tabs" id="categoryTabs"></div>
+          <div class="ai-model-list" id="aiModelList"></div>
+        </div>
+        <!-- Right: Config Panel -->
+        <div class="cap-right">
+          <div class="right-tabs" id="rightTabs">
+            <div class="right-tab active" data-tab="intro" onclick="switchRightTab('intro')"><i class="fa-solid fa-plus-circle"></i>能力引入</div>
+            <div class="right-tab" data-tab="monitor" onclick="switchRightTab('monitor')"><i class="fa-solid fa-chart-line"></i>监控与计费</div>
+            <div class="right-tab" data-tab="cb" onclick="switchRightTab('cb')"><i class="fa-solid fa-shield"></i>降级熔断</div>
+          </div>
+          <div class="config-panel" id="configPanel">
+            <div class="no-selection"><i class="fa-regular fa-hand-pointer"></i><p>请从左侧选择一个 AI 智能能力查看详情</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ===== Toast Container ===== -->
+<div id="toastContainer" class="fixed top-4 right-4 flex flex-col gap-2" style="z-index:9999"></div>
+
+<script>
+// ============================================================
+// DATA: 6 Categories x 2-3 AI Capabilities (Oil/Gas Scenarios)
+// ============================================================
+var CAPABILITY_CATEGORIES = [
+  { id:'pred', name:'预测分析能力', icon:'fa-chart-line', color:'var(--brand)' },
+  { id:'anom', name:'异常检测能力', icon:'fa-exclamation-triangle', color:'var(--danger)' },
+  { id:'optim', name:'优化决策能力', icon:'fa-sliders', color:'var(--amber)' },
+  { id:'vision', name:'图像识别能力', icon:'fa-camera', color:'oklch(55% 0.18 280)' },
+  { id:'nlp', name:'自然语言处理', icon:'fa-language', color:'oklch(55% 0.16 160)' },
+  { id:'kg', name:'知识图谱能力', icon:'fa-diagram-project', color:'oklch(50% 0.14 340)' }
+];
+
+var AI_MODELS = [
+  // ===== 预测分析能力 =====
+  { id:'M001', cat:'pred', name:'油井产量预测', type:'时序预测', algorithm:'LSTM', version:'v2.3', status:'published', latency:235, throughput:42, invocations:15830, desc:'基于 LSTM 神经网络，利用历史产量、压力、温度等多维时序数据预测未来 7 天油井产量，支持单井与区块级预测。', params:[{key:'prediction_days',label:'预测天数',type:'number',default:7,min:1,max:30},{key:'confidence_threshold',label:'置信度阈值',type:'number',default:0.85,step:0.05},{key:'history_window',label:'历史窗口(天)',type:'number',default:30,min:7,max:90},{key:'seasonal_period',label:'季节性周期',type:'select',options:['无','周','月','季'],default:'月'}], color:'#6366f1', icon:'fa-oil-well' },
+  { id:'M002', cat:'pred', name:'管网压力趋势预测', type:'时序预测', algorithm:'Transformer', version:'v1.8', status:'published', latency:312, throughput:32, invocations:12450, desc:'利用 Transformer 注意力机制对管网各节点的压力序列进行建模，预测未来 60 分钟压力变化趋势，提前预警超压风险。', params:[{key:'predict_minutes',label:'预测时长(分钟)',type:'number',default:60,min:10,max:240},{key:'pressure_threshold',label:'压力告警阈值(MPa)',type:'number',default:4.5,step:0.1},{key:'smooth_window',label:'平滑窗口',type:'number',default:5,min:1,max:20}], color:'#6366f1', icon:'fa-water' },
+  { id:'M003', cat:'pred', name:'设备剩余寿命预测', type:'回归预测', algorithm:'XGBoost', version:'v3.1', status:'published', latency:89, throughput:115, invocations:6720, desc:'基于 XGBoost 集成学习，综合振动、温度、运行时长等多维特征预测关键设备（压缩机、泵、发电机）的剩余使用寿命(RUL)。', params:[{key:'device_type',label:'设备类型',type:'select',options:['压缩机','泵','发电机','分离器'],default:'压缩机'},{key:'confidence_level',label:'置信水平',type:'select',options:['90%','95%','99%'],default:'95%'},{key:'degradation_factor',label:'退化因子',type:'number',default:1.0,step:0.1}], color:'#6366f1', icon:'fa-cogs' },
+  // ===== 异常检测能力 =====
+  { id:'M004', cat:'anom', name:'抽油机工况异常检测', type:'异常分类', algorithm:'Isolation Forest', version:'v2.0', status:'published', latency:56, throughput:178, invocations:34120, desc:'基于 Isolation Forest 对抽油机示功图与电参数据进行无监督异常检测，识别泵卡、气锁、断杆等 12 种异常工况。', params:[{key:'anomaly_ratio',label:'异常比例',type:'number',default:0.1,step:0.01},{key:'contamination',label:'污染率',type:'number',default:0.05,step:0.01},{key:'n_estimators',label:'树数量',type:'number',default:100,min:50,max:500}], color:'#ef4444', icon:'fa-wrench' },
+  { id:'M005', cat:'anom', name:'管道泄漏检测', type:'异常检测', algorithm:'Autoencoder', version:'v2.4', status:'published', latency:182, throughput:54, invocations:8920, desc:'利用 Autoencoder 重构误差检测原油/天然气管道微小泄漏，基于声波、压力、流量多维信号，可识别 0.1% 以下的微量泄漏。', params:[{key:'leak_sensitivity',label:'泄漏灵敏度',type:'select',options:['高(0.1%)','中(0.5%)','低(1.0%)'],default:'中(0.5%)'},{key:'detection_window',label:'检测窗口(s)',type:'number',default:10,min:1,max:60},{key:'reconstruction_error',label:'重构误差阈值',type:'number',default:0.05,step:0.005}], color:'#ef4444', icon:'fa-bolt' },
+  { id:'M006', cat:'anom', name:'传感器数据漂移检测', type:'数据质量', algorithm:'统计检验', version:'v1.5', status:'published', latency:23, throughput:420, invocations:56300, desc:'对现场传感器数据流进行实时统计漂移检测，使用 KS 检验和 CUSUM 算法识别传感器零点漂移、精度退化等异常。', params:[{key:'drift_sensitivity',label:'漂移灵敏度',type:'select',options:['高','中','低'],default:'中'},{key:'window_size',label:'滑动窗口',type:'number',default:100,min:20,max:500},{key:'threshold_sigma',label:'阈值(σ)',type:'number',default:3.0,step:0.5}], color:'#ef4444', icon:'fa-microchip' },
+  // ===== 优化决策能力 =====
+  { id:'M007', cat:'optim', name:'抽油机冲次优化', type:'实时优化', algorithm:'强化学习(PPO)', version:'v3.0', status:'published', latency:145, throughput:68, invocations:4890, desc:'基于 PPO 强化学习算法，实时优化抽油机冲次频率，在保证产量的前提下最小化能耗，平均节能 12-18%。', params:[{key:'optimization_goal',label:'优化目标',type:'select',options:['最小化能耗','最大化产量','平衡模式'],default:'平衡模式'},{key:'min_stroke',label:'最小冲次',type:'number',default:2,min:1,max:6},{key:'max_stroke',label:'最大冲次',type:'number',default:8,min:3,max:12},{key:'learning_rate',label:'学习率',type:'number',default:0.001,step:0.0001}], color:'#f59e0b', icon:'fa-gauge-high' },
+  { id:'M008', cat:'optim', name:'注水方案优化', type:'方案优化', algorithm:'粒子群(PSO)', version:'v2.1', status:'published', latency:380, throughput:26, invocations:3240, desc:'利用粒子群优化算法，在注水井网约束下寻求最优注水分配方案，最大化驱油效率的同时控制注水成本。', params:[{key:'population_size',label:'粒子数量',type:'number',default:50,min:10,max:200},{key:'max_iterations',label:'最大迭代次数',type:'number',default:100,min:10,max:500},{key:'inertia_weight',label:'惯性权重',type:'number',default:0.7,step:0.05},{key:'injection_budget',label:'注水预算上限(m³)',type:'number',default:5000,step:100}], color:'#f59e0b', icon:'fa-droplet' },
+  { id:'M009', cat:'optim', name:'输油调度优化', type:'调度优化', algorithm:'遗传算法(GA)', version:'v1.9', status:'draft', latency:420, throughput:22, invocations:1890, desc:'基于遗传算法的输油管道批次调度优化，满足各炼厂需求的同时优化泵送顺序与批次切换，降低混油损失。', params:[{key:'population_size',label:'种群规模',type:'number',default:100,min:20,max:300},{key:'mutation_rate',label:'变异率',type:'number',default:0.05,step:0.01},{key:'crossover_rate',label:'交叉率',type:'number',default:0.8,step:0.05},{key:'time_horizon',label:'调度时间窗口(h)',type:'number',default:72,min:24,max:168}], color:'#f59e0b', icon:'fa-truck' },
+  // ===== 图像识别能力 =====
+  { id:'M010', cat:'vision', name:'油管缺陷检测', type:'目标检测', algorithm:'CNN / YOLOv8', version:'v3.2', status:'published', latency:198, throughput:50, invocations:15240, desc:'基于 YOLOv8 的油管内外壁缺陷检测，识别裂纹、腐蚀坑、变形等 6 类缺陷，支持视频流实时分析。', params:[{key:'confidence_threshold',label:'检测置信度',type:'number',default:0.5,step:0.05},{key:'iou_threshold',label:'IOU 阈值',type:'number',default:0.45,step:0.05},{key:'defect_classes',label:'检测缺陷类别',type:'select',options:['全部','裂纹','腐蚀','变形','磨损','凹坑','复合'],default:'全部'}], color:'oklch(55% 0.18 280)', icon:'fa-microscope' },
+  { id:'M011', cat:'vision', name:'仪表读数识别', type:'OCR识别', algorithm:'CRNN + Attention', version:'v2.0', status:'published', latency:76, throughput:130, invocations:42310, desc:'对现场指针式仪表和数字仪表进行自动读数识别，支持压力表、温度表、流量计等 20+ 种表计类型，精度达 99.2%。', params:[{key:'meter_type',label:'仪表类型',type:'select',options:['压力表','温度表','流量计','液位计','多功能表'],default:'压力表'},{key:'recognition_precision',label:'识别精度',type:'select',options:['标准','高精度'],default:'标准'}], color:'oklch(55% 0.18 280)', icon:'fa-gauge' },
+  { id:'M012', cat:'vision', name:'安全帽检测', type:'目标检测', algorithm:'YOLOv5', version:'v1.8', status:'published', latency:34, throughput:290, invocations:67890, desc:'对作业现场视频流进行实时安全帽佩戴检测，联动门禁与告警系统，支持低光照与遮挡场景。', params:[{key:'detection_threshold',label:'检测阈值',type:'number',default:0.6,step:0.05},{key:'alert_enabled',label:'未佩戴告警',type:'select',options:['开启','关闭'],default:'开启'},{key:'snapshot_enabled',label:'自动抓拍',type:'select',options:['开启','关闭'],default:'开启'}], color:'oklch(55% 0.18 280)', icon:'fa-hard-hat' },
+  // ===== 自然语言处理 =====
+  { id:'M013', cat:'nlp', name:'运维日志分析', type:'文本分类', algorithm:'BERT-CNN', version:'v2.2', status:'published', latency:290, throughput:34, invocations:9870, desc:'基于 BERT 预训练模型的运维日志智能分类与关键信息提取，自动标注日志级别、关联设备与故障类型。', params:[{key:'classification_level',label:'分类粒度',type:'select',options:['粗粒度(5类)','中粒度(12类)','细粒度(25类)'],default:'中粒度(12类)'},{key:'extract_entities',label:'实体提取',type:'select',options:['开启','关闭'],default:'开启'},{key:'sentiment_analysis',label:'情感分析',type:'select',options:['开启','关闭'],default:'关闭'}], color:'oklch(55% 0.16 160)', icon:'fa-file-lines' },
+  { id:'M014', cat:'nlp', name:'工单智能分类', type:'文本分类', algorithm:'FastText', version:'v3.0', status:'published', latency:18, throughput:550, invocations:89300, desc:'对运维工单内容进行自动分类与优先级评定，基于 FastText 实现毫秒级分类，支持 30+ 工单类型。', params:[{key:'priority_enabled',label:'自动优先级',type:'select',options:['开启','关闭'],default:'开启'},{key:'auto_assign',label:'自动分配责任人',type:'select',options:['开启','关闭'],default:'关闭'},{key:'similarity_search',label:'相似工单推荐',type:'select',options:['开启','关闭'],default:'开启'}], color:'oklch(55% 0.16 160)', icon:'fa-ticket' },
+  { id:'M015', cat:'nlp', name:'知识库问答', type:'阅读理解', algorithm:'RAG + LLM', version:'v2.5', status:'draft', latency:1250, throughput:8, invocations:2340, desc:'基于检索增强生成(RAG)的油气领域知识库问答系统，覆盖设备手册、操作规程、历史案例，支持多轮对话。', params:[{key:'retrieval_top_k',label:'检索 Top-K',type:'number',default:5,min:1,max:20},{key:'chunk_size',label:'文档分块大小',type:'number',default:512,min:128,max:1024},{key:'temperature',label:'生成温度',type:'number',default:0.3,step:0.05},{key:'max_tokens',label:'最大生成长度',type:'number',default:512,min:64,max:2048}], color:'oklch(55% 0.16 160)', icon:'fa-book-open' },
+  // ===== 知识图谱能力 =====
+  { id:'M016', cat:'kg', name:'设备故障知识图谱', type:'知识推理', algorithm:'TransE + GNN', version:'v2.1', status:'published', latency:245, throughput:40, invocations:5670, desc:'构建设备故障知识图谱，覆盖 500+ 设备类型、3000+ 故障模式，支持基于图谱的故障根因推理与维修建议。', params:[{key:'reasoning_depth',label:'推理深度(层)',type:'number',default:3,min:1,max:6},{key:'similarity_threshold',label:'相似度阈值',type:'number',default:0.7,step:0.05},{key:'include_historical',label:'包含历史案例',type:'select',options:['是','否'],default:'是'}], color:'oklch(50% 0.14 340)', icon:'fa-sitemap' },
+  { id:'M017', cat:'kg', name:'工艺流程知识图谱', type:'知识建模', algorithm:'RDF/OWL', version:'v1.6', status:'published', latency:120, throughput:82, invocations:4390, desc:'对油气开采-处理-储运全工艺流程进行知识建模，构建工序、设备、物料、参数之间的关联关系网络。', params:[{key:'process_level',label:'流程层级',type:'select',options:['一级(场站)','二级(工段)','三级(单元)'],default:'二级(工段)'},{key:'include_parameters',label:'包含工艺参数',type:'select',options:['是','否'],default:'是'}], color:'oklch(50% 0.14 340)', icon:'fa-project-diagram' },
+  { id:'M018', cat:'kg', name:'管线风险推理', type:'风险推理', algorithm:'贝叶斯网络', version:'v1.9', status:'draft', latency:310, throughput:32, invocations:2100, desc:'基于贝叶斯网络对管线第三方破坏、腐蚀、地质灾害等多维风险进行概率推理与综合评估。', params:[{key:'risk_factors',label:'风险因素',type:'select',options:['全部','第三方破坏','腐蚀','地质灾害','误操作','材料缺陷'],default:'全部'},{key:'assessment_scope',label:'评估范围(km)',type:'number',default:50,min:1,max:500},{key:'update_interval',label:'更新间隔(天)',type:'number',default:7,min:1,max:90}], color:'oklch(50% 0.14 340)', icon:'fa-shield' }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+var selectedCategory = 'pred';
+var selectedModelId = null;
+var currentRightTab = 'intro';
+var introducedModelIds = ['M001','M004','M007','M010','M013']; // some already introduced
+var cbState = { status:'CLOSED', failureCount:0, failureThreshold:5, failureWindow:10, timeout:3000, halfOpenInterval:30, fallback:'default' };
+var degradationRecords = [
+  { time:'2026-05-21 09:23:15', reason:'连续调用超时 (3次)', action:'熔断', status:'已恢复' },
+  { time:'2026-05-20 14:10:22', reason:'错误率超限 (85%)', action:'降级', status:'已恢复' },
+  { time:'2026-05-19 11:05:33', reason:'后端服务不可用', action:'熔断', status:'已恢复' },
+  { time:'2026-05-18 22:45:01', reason:'响应延迟 >5000ms', action:'降级', status:'已恢复' }
+];
+var dailyCalls = [234, 312, 198, 456, 378, 289, 401];
+var dailyLabels = ['05-15','05-16','05-17','05-18','05-19','05-20','05-21'];
+var invocationLog = [];
+var allDomains = ['全部'];
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  Scaffold.init('model-service');
+  renderCategoryTabs();
+  renderModelList(selectedCategory);
+  updateStats();
+  renderRightContent();
+  generateInvocationLog();
+  Scaffold.renderDemandBar();
+  Scaffold.markStepInProgress('model-service');
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type) {
+  type = type || 'info';
+  var container = document.getElementById('toastContainer');
+  var colors = { info:'var(--brand)', success:'var(--success)', warn:'var(--amber)', error:'var(--danger)' };
+  var icons = { info:'fa-circle-info', success:'fa-check-circle', warn:'fa-exclamation-circle', error:'fa-xmark-circle' };
+  var el = document.createElement('div');
+  el.className = 'flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm text-white anim-fade-up';
+  el.style.background = colors[type] || colors.info;
+  el.style.minWidth = '240px';
+  el.innerHTML = '<i class="fa-solid '+ (icons[type]||icons.info) +'"></i> ' + msg;
+  container.appendChild(el);
+  setTimeout(function() { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(function() { el.remove(); }, 400); }, 2500);
+}
+
+// ============================================================
+// CATEGORY TABS
+// ============================================================
+function renderCategoryTabs() {
+  var tabs = document.getElementById('categoryTabs');
+  var html = '';
+  for (var i = 0; i < CAPABILITY_CATEGORIES.length; i++) {
+    var c = CAPABILITY_CATEGORIES[i];
+    var active = c.id === selectedCategory ? ' active' : '';
+    html += '<div class="cat-tab' + active + '" onclick="switchCategory(\'' + c.id + '\')"><i class="fa-solid ' + c.icon + '"></i>' + c.name + '</div>';
+  }
+  tabs.innerHTML = html;
+  // Build ALL_DOMAINS
+  allDomains = ['全部'];
+  for (var i = 0; i < CAPABILITY_CATEGORIES.length; i++) {
+    allDomains.push(CAPABILITY_CATEGORIES[i].name);
+  }
+}
+
+function switchCategory(catId) {
+  selectedCategory = catId;
+  renderCategoryTabs();
+  renderModelList(catId);
+  // Clear selection if model not in this category
+  if (selectedModelId) {
+    var found = false;
+    for (var i = 0; i < AI_MODELS.length; i++) {
+      if (AI_MODELS[i].id === selectedModelId && AI_MODELS[i].cat === catId) { found = true; break; }
+    }
+    if (!found) {
+      selectedModelId = null;
+      renderRightContent();
+    }
+  }
+}
+
+// ============================================================
+// AI MODEL LIST
+// ============================================================
+function renderModelList(catId) {
+  var list = document.getElementById('aiModelList');
+  var models = AI_MODELS.filter(function(m) { return m.cat === catId; });
+  if (models.length === 0) {
+    list.innerHTML = '<div class="text-center py-12" style="color:var(--text-tertiary)"><i class="fa-solid fa-robot text-3xl mb-3"></i><div class="text-sm">该分类暂无智能能力</div></div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < models.length; i++) {
+    var m = models[i];
+    var selected = m.id === selectedModelId ? ' selected' : '';
+    var introduced = introducedModelIds.indexOf(m.id) >= 0;
+    var statusDot = m.status === 'published' ? 'var(--success)' : 'var(--amber)';
+    html += '<div class="ai-model-card' + selected + '" onclick="selectModel(\'' + m.id + '\')">';
+    html += '  <div class="flex items-center gap-3">';
+    html += '    <div class="w-8 h-8 rounded flex items-center justify-center text-white text-xs" style="background:' + m.color + '"><i class="fa-solid ' + m.icon + '"></i></div>';
+    html += '    <div style="flex:1;min-width:0">';
+    html += '      <div class="flex items-center gap-2"><span class="text-sm font-medium" style="color:var(--text-primary)">' + m.name + '</span><span class="badge" style="background:' + statusDot + '20;color:' + statusDot + ';font-size:9px;padding:1px 6px">' + (m.status==='published'?'已发布':'草稿') + '</span></div>';
+    html += '      <div class="flex items-center gap-2 mt-1"><span class="model-tag">' + m.type + '</span><span class="model-tag">' + m.algorithm + '</span><span class="model-tag">' + m.version + '</span></div>';
+    html += '    </div>';
+    html += '    <div style="flex-shrink:0">';
+    if (introduced) { html += '<span class="badge" style="background:var(--success-subtle);color:var(--success);font-size:10px"><i class="fa-solid fa-check mr-1"></i>已引入</span>'; }
+    html += '    </div>';
+    html += '  </div>';
+    html += '  <div class="model-metrics">';
+    html += '    <span><i class="fa-solid fa-bolt" style="color:var(--brand)"></i>' + m.latency + 'ms</span>';
+    html += '    <span><i class="fa-solid fa-arrow-up-wide-short" style="color:var(--success)"></i>' + m.throughput + '/s</span>';
+    html += '    <span><i class="fa-solid fa-chart-bar" style="color:var(--amber)"></i>' + formatNum(m.invocations) + '次</span>';
+    html += '  </div>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function formatNum(n) {
+  if (n >= 10000) return (n/10000).toFixed(1) + '万';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'k';
+  return n.toString();
+}
+
+// ============================================================
+// MODEL SELECTION
+// ============================================================
+function selectModel(modelId) {
+  selectedModelId = modelId;
+  renderModelList(selectedCategory);
+  renderRightContent();
+}
+
+function getSelectedModel() {
+  if (!selectedModelId) return null;
+  for (var i = 0; i < AI_MODELS.length; i++) {
+    if (AI_MODELS[i].id === selectedModelId) return AI_MODELS[i];
+  }
+  return null;
+}
+
+// ============================================================
+// RIGHT TABS
+// ============================================================
+function switchRightTab(tab) {
+  currentRightTab = tab;
+  var allTabs = document.querySelectorAll('.right-tab');
+  for (var i = 0; i < allTabs.length; i++) { allTabs[i].classList.remove('active'); }
+  document.querySelector('.right-tab[data-tab="' + tab + '"]').classList.add('active');
+  renderRightContent();
+}
+
+// ============================================================
+// RENDER RIGHT CONTENT
+// ============================================================
+function renderRightContent() {
+  var panel = document.getElementById('configPanel');
+  var model = getSelectedModel();
+  if (!model) {
+    panel.innerHTML = '<div class="no-selection"><i class="fa-regular fa-hand-pointer"></i><p>请从左侧选择一个 AI 智能能力查看详情</p></div>';
+    return;
+  }
+  if (currentRightTab === 'intro') { panel.innerHTML = renderIntroTab(model); }
+  else if (currentRightTab === 'monitor') { panel.innerHTML = renderMonitorTab(model); }
+  else if (currentRightTab === 'cb') { panel.innerHTML = renderCbTab(model); }
+}
+
+// ============================================================
+// TAB 1: 能力引入
+// ============================================================
+function renderIntroTab(model) {
+  var introduced = introducedModelIds.indexOf(model.id) >= 0;
+  var html = '';
+  // Selected Model Header
+  html += '<div class="selected-model-header">';
+  html += '  <div class="sm-icon" style="background:' + model.color + '"><i class="fa-solid ' + model.icon + '"></i></div>';
+  html += '  <div class="sm-info">';
+  html += '    <div class="sm-name">' + model.name + '</div>';
+  html += '    <div class="sm-meta">' + model.algorithm + ' · ' + model.version + ' · ' + model.type + '</div>';
+  html += '  </div>';
+  html += '  <div><span class="badge" style="background:var(--surface-subtle);color:var(--text-secondary);font-size:11px">ID: ' + model.id + '</span></div>';
+  html += '</div>';
+  // Description
+  html += '<div class="config-section"><h4><i class="fa-solid fa-info-circle"></i>能力描述</h4><p style="font-size:12px;color:var(--text-secondary);line-height:1.6">' + model.desc + '</p></div>';
+  // Parameters Configuration
+  html += '<div class="config-section"><h4><i class="fa-solid fa-sliders"></i>参数配置</h4><div class="config-grid" id="paramGrid">';
+  for (var i = 0; i < model.params.length; i++) {
+    var p = model.params[i];
+    html += '<div class="config-field"><label>' + p.label + '</label>';
+    if (p.type === 'select') {
+      html += '<select class="input" id="param_' + p.key + '">';
+      for (var j = 0; j < p.options.length; j++) {
+        var sel = p.options[j] === p.default ? 'selected' : '';
+        html += '<option value="' + p.options[j] + '" ' + sel + '>' + p.options[j] + '</option>';
+      }
+      html += '</select>';
+    } else {
+      var minAttr = p.min !== undefined ? ' min="' + p.min + '"' : '';
+      var maxAttr = p.max !== undefined ? ' max="' + p.max + '"' : '';
+      var stepAttr = p.step !== undefined ? ' step="' + p.step + '"' : '';
+      html += '<input type="' + p.type + '" class="input" id="param_' + p.key + '" value="' + p.default + '"' + minAttr + maxAttr + stepAttr + '>';
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
+  // Trigger Conditions
+  html += '<div class="config-section"><h4><i class="fa-solid fa-bolt"></i>触发条件</h4><div class="trigger-grid" id="triggerGrid">';
+  var triggers = [
+    {id:'node',icon:'fa-diagram-project',label:'按流程节点触发'},
+    {id:'message',icon:'fa-envelope',label:'按消息类型触发'},
+    {id:'tx',icon:'fa-arrows-spin',label:'按事务阶段触发'},
+    {id:'timer',icon:'fa-clock',label:'定时触发'}
+  ];
+  for (var i = 0; i < triggers.length; i++) {
+    var t = triggers[i];
+    html += '<div class="trigger-option" data-trigger="' + t.id + '" onclick="toggleTrigger(this)"><i class="fa-solid ' + t.icon + '"></i>' + t.label + '</div>';
+  }
+  html += '</div></div>';
+  // Action Buttons
+  html += '<div class="action-row">';
+  if (!introduced) {
+    html += '<button class="btn btn-primary btn-sm" onclick="introduceToAssembly()"><i class="fa-solid fa-link mr-1"></i>引入到编排</button>';
+  } else {
+    html += '<button class="btn btn-outline btn-sm" onclick="removeFromAssembly()"><i class="fa-solid fa-unlink mr-1"></i>从编排移除</button>';
+  }
+  html += '<button class="btn btn-outline btn-sm" onclick="testInvoke()"><i class="fa-solid fa-play mr-1"></i>测试调用</button>';
+  html += '</div>';
+  return html;
+}
+
+// ============================================================
+// TAB 2: 监控与计费
+// ============================================================
+function renderMonitorTab(model) {
+  var totalCalls = model.invocations;
+  var todayCalls = Math.round(model.invocations * 0.02 + Math.random() * 50);
+  var monthCalls = Math.round(model.invocations * 0.35 + Math.random() * 200);
+  var avgLatency = model.latency + Math.round(Math.random() * 20 - 10);
+  var errorRate = (Math.random() * 3).toFixed(1);
+  var perCallPrice = getModelPrice(model.id);
+  var monthCost = (monthCalls * perCallPrice).toFixed(2);
+  var budgetAlert = (monthCost * 1.5).toFixed(0);
+  var html = '';
+  // Metric Cards
+  html += '<div class="metric-cards">';
+  html += '  <div class="metric-card"><div class="metric-icon" style="color:var(--brand)"><i class="fa-solid fa-chart-simple"></i></div><div class="metric-value">' + formatNum(todayCalls) + '</div><div class="metric-label">今日调用</div></div>';
+  html += '  <div class="metric-card"><div class="metric-icon" style="color:var(--success)"><i class="fa-solid fa-calendar-days"></i></div><div class="metric-value">' + formatNum(monthCalls) + '</div><div class="metric-label">本月调用</div></div>';
+  html += '  <div class="metric-card"><div class="metric-icon" style="color:var(--amber)"><i class="fa-solid fa-clock"></i></div><div class="metric-value">' + avgLatency + 'ms</div><div class="metric-label">平均延迟</div></div>';
+  html += '  <div class="metric-card"><div class="metric-icon" style="color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="metric-value">' + errorRate + '%</div><div class="metric-label">错误率</div></div>';
+  html += '  <div class="metric-card"><div class="metric-icon" style="color:var(--purple)"><i class="fa-solid fa-cubes"></i></div><div class="metric-value">' + formatNum(totalCalls) + '</div><div class="metric-label">累计调用</div></div>';
+  html += '</div>';
+  // Daily Chart
+  html += '<div class="config-section"><h4><i class="fa-solid fa-chart-bar"></i>近 7 日调用趋势</h4>';
+  html += '<div class="chart-area" id="chartArea">';
+  var maxVal = 1;
+  for (var i = 0; i < dailyCalls.length; i++) { if (dailyCalls[i] > maxVal) maxVal = dailyCalls[i]; }
+  for (var i = 0; i < dailyCalls.length; i++) {
+    var pct = Math.round(dailyCalls[i] / maxVal * 100);
+    var barColor = i === dailyCalls.length - 1 ? 'brand' : 'brand';
+    html += '<div class="chart-row"><div class="chart-label">' + dailyLabels[i] + '</div><div class="flex-1" style="background:var(--surface-subtle);border-radius:4px;height:20px;position:relative"><div class="chart-bar ' + barColor + '" style="width:' + pct + '%"></div></div><div class="chart-val">' + dailyCalls[i] + '</div></div>';
+  }
+  html += '</div></div>';
+  // Billing
+  html += '<div class="config-section"><h4><i class="fa-solid fa-coins"></i>计费信息</h4><div class="billing-grid">';
+  html += '  <div class="billing-card"><div class="bill-value" style="color:var(--brand)">¥' + perCallPrice.toFixed(4) + '</div><div class="bill-label">单次调用价格</div></div>';
+  html += '  <div class="billing-card"><div class="bill-value" style="color:var(--success)">¥' + monthCost + '</div><div class="bill-label">本月费用</div></div>';
+  html += '  <div class="billing-card"><div class="bill-value" style="color:var(--amber)">¥' + budgetAlert + '</div><div class="bill-label">预算告警阈值</div></div>';
+  html += '</div></div>';
+  // Invocation Log
+  html += '<div class="config-section"><h4><i class="fa-solid fa-list"></i>最近调用记录</h4>';
+  html += '<table class="data-table invocation-log"><thead><tr><th>调用时间</th><th>耗时(ms)</th><th>状态</th><th>费用(¥)</th></tr></thead><tbody id="invocationLogBody">';
+  var logs = getInvocationLogFor(model.id);
+  for (var i = 0; i < logs.length; i++) {
+    var l = logs[i];
+    var statusColor = l.status === '成功' ? 'var(--success)' : (l.status === '超时' ? 'var(--amber)' : 'var(--danger)');
+    html += '<tr><td>' + l.time + '</td><td>' + l.duration + '</td><td><span style="color:' + statusColor + '">' + l.status + '</span></td><td>' + l.cost.toFixed(4) + '</td></tr>';
+  }
+  html += '</tbody></table></div>';
+  return html;
+}
+
+// ============================================================
+// TAB 3: 降级熔断
+// ============================================================
+function renderCbTab(model) {
+  var status = cbState.status;
+  var statusClass = status.toLowerCase();
+  var statusText = status === 'CLOSED' ? '正常 (CLOSED)' : (status === 'OPEN' ? '已熔断 (OPEN)' : '半开 (HALF_OPEN)');
+  var html = '';
+  // CB Status Indicator
+  html += '<div class="config-section"><h4><i class="fa-solid fa-shield-halved"></i>熔断器状态</h4>';
+  html += '<div class="cb-indicator ' + statusClass + '"><span class="cb-dot ' + statusClass + '"></span>' + statusText + '</div>';
+  html += '</div>';
+  // CB Config
+  html += '<div class="config-section"><h4><i class="fa-solid fa-gear"></i>熔断参数配置</h4><div class="config-grid">';
+  html += '  <div class="config-field"><label>失败阈值 (X of Y)</label><div class="flex gap-2"><input type="number" class="input" id="cbFailureX" value="' + cbState.failureThreshold + '" min="1" max="20" style="width:60px"><span style="display:flex;align-items:center;color:var(--text-tertiary);font-size:12px">of</span><input type="number" class="input" id="cbFailureY" value="' + cbState.failureWindow + '" min="1" max="50" style="width:60px"></div></div>';
+  html += '  <div class="config-field"><label>超时阈值 (ms)</label><input type="number" class="input" id="cbTimeout" value="' + cbState.timeout + '" min="100" max="30000" step="100"></div>';
+  html += '  <div class="config-field"><label>半开重试间隔 (s)</label><input type="number" class="input" id="cbRetryInterval" value="' + cbState.halfOpenInterval + '" min="5" max="300" step="5"></div>';
+  html += '  <div class="config-field"><label>降级策略</label><select class="input" id="cbFallback">';
+  var fallbacks = [
+    {v:'default',l:'返回默认值'},
+    {v:'cache',l:'使用缓存数据'},
+    {v:'fallback_model',l:'使用备用模型'},
+    {v:'skip',l:'跳过该节点'}
+  ];
+  for (var i = 0; i < fallbacks.length; i++) {
+    var sel = fallbacks[i].v === cbState.fallback ? 'selected' : '';
+    html += '<option value="' + fallbacks[i].v + '" ' + sel + '>' + fallbacks[i].l + '</option>';
+  }
+  html += '  </select></div>';
+  html += '</div></div>';
+  // Action buttons
+  html += '<div class="action-row mb-4">';
+  html += '  <button class="btn btn-danger-text btn-sm" onclick="manualTrip()"><i class="fa-solid fa-bolt mr-1"></i>手动熔断</button>';
+  html += '  <button class="btn btn-success-text btn-sm" onclick="manualRecover()"><i class="fa-solid fa-heart-circle-check mr-1"></i>手动恢复</button>';
+  html += '  <button class="btn btn-primary btn-sm" onclick="saveCbConfig()"><i class="fa-solid fa-floppy-disk mr-1"></i>保存配置</button>';
+  html += '</div>';
+  // Degradation Records
+  html += '<div class="config-section"><h4><i class="fa-solid fa-clock-rotate-left"></i>降级熔断记录</h4>';
+  html += '<table class="degradation-table"><thead><tr><th>时间</th><th>原因</th><th>动作</th><th>状态</th></tr></thead><tbody>';
+  for (var i = 0; i < degradationRecords.length; i++) {
+    var r = degradationRecords[i];
+    var statusColor = r.status === '已恢复' ? 'var(--success)' : (r.status === '熔断中' ? 'var(--danger)' : 'var(--amber)');
+    html += '<tr><td>' + r.time + '</td><td>' + r.reason + '</td><td><span class="badge" style="background:' + (r.action==='熔断'?'var(--danger)':'var(--amber)') + '20;color:' + (r.action==='熔断'?'var(--danger)':'var(--amber)') + ';font-size:10px">' + r.action + '</span></td><td style="color:' + statusColor + '">' + r.status + '</td></tr>';
+  }
+  html += '</tbody></table></div>';
+  return html;
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+function toggleTrigger(el) {
+  el.classList.toggle('selected');
+}
+
+function introduceToAssembly() {
+  var model = getSelectedModel();
+  if (!model) return;
+  if (introducedModelIds.indexOf(model.id) >= 0) {
+    showToast('该能力已在编排中', 'warn');
+    return;
+  }
+  introducedModelIds.push(model.id);
+  showToast('"' + model.name + '" 已成功引入到业务编排', 'success');
+  renderModelList(selectedCategory);
+  renderRightContent();
+  updateStats();
+}
+
+function removeFromAssembly() {
+  var model = getSelectedModel();
+  if (!model) return;
+  var idx = introducedModelIds.indexOf(model.id);
+  if (idx >= 0) {
+    introducedModelIds.splice(idx, 1);
+    showToast('"' + model.name + '" 已从编排中移除', 'info');
+  }
+  renderModelList(selectedCategory);
+  renderRightContent();
+  updateStats();
+}
+
+function testInvoke() {
+  var model = getSelectedModel();
+  if (!model) return;
+  var duration = model.latency + Math.round(Math.random() * 100 - 50);
+  var success = Math.random() > 0.15;
+  var status = success ? '成功' : (Math.random() > 0.5 ? '超时' : '失败');
+  var now = new Date();
+  var timeStr = now.getFullYear() + '-' + pad2(now.getMonth()+1) + '-' + pad2(now.getDate()) + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds());
+  var price = getModelPrice(model.id);
+  // Build mock result
+  var mockResults = [
+    '{"prediction":[12.3,12.8,13.1,12.9,13.4],"confidence":0.92,"unit":"吨/天"}',
+    '{"anomaly_score":0.12,"is_anomaly":false,"drift_level":"normal"}',
+    '{"optimal_value":4.2,"optimization_gain":"+15.3%","recommendation":"increase stroke to 5.2"}',
+    '{"defects_detected":0,"processing_time":"198ms"}',
+    '{"classification":"紧急维护","confidence":0.87,"priority":"P1"}',
+    '{"risk_score":0.34,"risk_level":"低","mitigation":"定期巡检"}'
+  ];
+  var mockResult = mockResults[Math.floor(Math.random() * mockResults.length)];
+  showToast('测试调用完成: ' + status + ' (' + duration + 'ms) 结果: ' + mockResult.substring(0, 50) + (mockResult.length>50?'...':''), success ? 'success' : 'warn');
+  // Add to invocation log
+  invocationLog.push({ modelId:model.id, time:timeStr, duration:duration, status:status, cost:price });
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+// ============================================================
+// CB ACTIONS
+// ============================================================
+function manualTrip() {
+  if (cbState.status === 'OPEN') { showToast('熔断器已处于开启状态', 'warn'); return; }
+  cbState.status = 'OPEN';
+  showToast('已手动触发熔断', 'error');
+  degradationRecords.unshift({ time:getNow(), reason:'管理员手动触发', action:'熔断', status:'熔断中' });
+  renderRightContent();
+  updateStats();
+}
+
+function manualRecover() {
+  if (cbState.status === 'CLOSED') { showToast('熔断器已处于正常状态', 'warn'); return; }
+  cbState.status = 'CLOSED';
+  cbState.failureCount = 0;
+  showToast('熔断器已手动恢复', 'success');
+  if (degradationRecords.length > 0 && degradationRecords[0].status === '熔断中') {
+    degradationRecords[0].status = '已恢复';
+  }
+  renderRightContent();
+  updateStats();
+}
+
+function saveCbConfig() {
+  var x = parseInt(document.getElementById('cbFailureX').value) || 5;
+  var y = parseInt(document.getElementById('cbFailureY').value) || 10;
+  var timeout = parseInt(document.getElementById('cbTimeout').value) || 3000;
+  var interval = parseInt(document.getElementById('cbRetryInterval').value) || 30;
+  var fallback = document.getElementById('cbFallback').value;
+  cbState.failureThreshold = x;
+  cbState.failureWindow = y;
+  cbState.timeout = timeout;
+  cbState.halfOpenInterval = interval;
+  cbState.fallback = fallback;
+  Scaffold.markStepCompleted('model-service');
+  showToast('熔断参数已保存', 'success');
+}
+
+function getNow() {
+  var d = new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function getModelPrice(modelId) {
+  var prices = { M001:0.015, M002:0.020, M003:0.012, M004:0.008, M005:0.025, M006:0.005, M007:0.030, M008:0.035, M009:0.028, M010:0.022, M011:0.010, M012:0.006, M013:0.018, M014:0.003, M015:0.050, M016:0.020, M017:0.015, M018:0.025 };
+  return prices[modelId] || 0.01;
+}
+
+function getInvocationLogFor(modelId) {
+  var logs = invocationLog.filter(function(l) { return l.modelId === modelId; });
+  if (logs.length === 0) {
+    // Generate some fake historical logs
+    var now = new Date();
+    for (var i = 0; i < 5; i++) {
+      var d = new Date(now - i * 3600000 * (Math.random() * 3 + 1));
+      var timeStr = d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+      var dur = Math.round(getSelectedModel().latency + Math.random() * 100 - 30);
+      var st = Math.random() > 0.1 ? '成功' : (Math.random() > 0.5 ? '超时' : '失败');
+      var price = getModelPrice(modelId);
+      logs.push({ modelId:modelId, time:timeStr, duration:dur, status:st, cost:price });
+    }
+    invocationLog = invocationLog.concat(logs);
+  }
+  // Return last 5
+  return logs.slice(-5);
+}
+
+function generateInvocationLog() {
+  // Pre-populate some logs for already-introduced models
+  for (var i = 0; i < introducedModelIds.length; i++) {
+    getInvocationLogFor(introducedModelIds[i]);
+  }
+}
+
+// ============================================================
+// STATS
+// ============================================================
+function updateStats() {
+  var total = AI_MODELS.length;
+  var introduced = introducedModelIds.length;
+  var todayCalls = 0;
+  var monthCost = 0;
+  for (var i = 0; i < introducedModelIds.length; i++) {
+    var mid = introducedModelIds[i];
+    for (var j = 0; j < AI_MODELS.length; j++) {
+      if (AI_MODELS[j].id === mid) {
+        var monthC = Math.round(AI_MODELS[j].invocations * 0.35 + Math.random() * 200);
+        todayCalls += Math.round(AI_MODELS[j].invocations * 0.02);
+        monthCost += monthC * getModelPrice(mid);
+        break;
+      }
+    }
+  }
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statIntroduced').textContent = introduced;
+  document.getElementById('statTodayCalls').textContent = formatNum(todayCalls);
+  document.getElementById('statMonthCost').textContent = '¥' + monthCost.toFixed(2);
+  document.getElementById('statCbOpen').textContent = cbState.status === 'OPEN' ? '1' : '0';
+}
+</script>
+</body>
+</html>

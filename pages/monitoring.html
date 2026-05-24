@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+<script src="../_shared/scaffold.js"></script>
+<title>运行监控 — 业务中台装配环境</title>
+<style>
+/* ---- 监控卡片（亮色主题） ---- */
+.mon-card{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:16px}
+.mon-header{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+/* 趋势柱 */
+.bar-col{flex:1;border-radius:3px 3px 0 0;transition:height .3s;min-width:0}
+/* 状态点 */
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.status-dot.ok{background:var(--success)}.status-dot.warn{background:var(--amber)}.status-dot.err{background:var(--danger)}
+/* 告警级别 */
+.alert-critical{background:var(--danger-subtle);border-left:3px solid var(--danger);padding:8px 10px;border-radius:0 4px 4px 0;margin-bottom:6px;cursor:pointer}
+.alert-warning{background:var(--warning-subtle);border-left:3px solid var(--warning);padding:8px 10px;border-radius:0 4px 4px 0;margin-bottom:6px;cursor:pointer}
+.alert-info{background:var(--info-subtle);border-left:3px solid var(--info);padding:8px 10px;border-radius:0 4px 4px 0;margin-bottom:6px;cursor:pointer}
+/* Tab切换 */
+.mon-tab{padding:6px 14px;font-size:12px;border-radius:6px;cursor:pointer;color:var(--text-tertiary);transition:all .12s;white-space:nowrap}
+.mon-tab:hover{color:var(--text-primary);background:var(--surface-hover)}
+.mon-tab.active{color:#fff;background:var(--brand)}
+/* 调用链节点 */
+.chain-node{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .12s}
+.chain-node:hover{background:var(--surface-hover)}
+.chain-line{width:1.5px;height:20px;margin-left:12px;background:var(--border-default)}
+/* SLA环 */
+.sla-ring{position:relative;width:72px;height:72px;flex-shrink:0}
+.sla-ring svg{transform:rotate(-90deg)}
+.sla-ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+</style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1">
+    <div class="flex items-center gap-2 mr-6">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div>
+      <span class="text-white font-semibold text-base">业务中台装配环境</span>
+    </div>
+    <nav class="flex items-center gap-0.5">
+      <a href="../index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>首页</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm">
+    <div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div>
+    <div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--danger)">5</span></div>
+    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div>
+    <span class="text-xs">张架构</span>
+  </div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+<main class="flex-1 overflow-y-auto">
+  <div id="breadcrumb"></div>
+  <!-- Hero -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Monitoring &amp; Observability</div>
+      <h2>运行监控</h2>
+      <div class="subtitle">实时采集中台运行数据，可视化展示运行态势与服务调用链路，异常自动告警并联动治理流程</div>
+    </div>
+    <div class="page-actions">
+      <span class="text-xs flex items-center gap-1 px-3 py-1.5 rounded" style="background:var(--success-subtle);color:var(--success)"><span class="w-2 h-2 rounded-full" style="background:var(--success)"></span>系统运行正常</span>
+    </div>
+  </div>
+  <!-- Content -->
+  <div class="page-section anim-fade-up">
+    <!-- 指标卡 -->
+    <div class="grid grid-cols-5 gap-3 mb-4">
+      <div class="mon-card"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:var(--brand-subtle)"><i class="fa-solid fa-server text-sm" style="color:var(--brand)"></i></div><div><div class="text-xs" style="color:var(--text-tertiary)">服务实例</div><div class="text-xl font-bold" style="color:var(--text-primary)">156</div></div></div><div class="text-xs" style="color:var(--success)"><span class="status-dot ok"></span> 运行中 153</div></div>
+      <div class="mon-card"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:var(--info-subtle)"><i class="fa-solid fa-bolt text-sm" style="color:var(--info)"></i></div><div><div class="text-xs" style="color:var(--text-tertiary)">今日调用量</div><div class="text-xl font-bold" style="color:var(--text-primary)">128,456</div></div></div><div class="text-xs" style="color:var(--success)"><i class="fa-solid fa-arrow-up mr-1"></i>+15.3%</div></div>
+      <div class="mon-card"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:var(--warning-subtle)"><i class="fa-solid fa-clock text-sm" style="color:var(--warning)"></i></div><div><div class="text-xs" style="color:var(--text-tertiary)">平均响应</div><div class="text-xl font-bold" style="color:var(--text-primary)">45ms</div></div></div><div class="text-xs" style="color:var(--success)"><i class="fa-solid fa-arrow-down mr-1"></i>-8ms</div></div>
+      <div class="mon-card"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:var(--danger-subtle)"><i class="fa-solid fa-triangle-exclamation text-sm" style="color:var(--danger)"></i></div><div><div class="text-xs" style="color:var(--text-tertiary)">异常告警</div><div class="text-xl font-bold" style="color:var(--danger)">3</div></div></div><div class="text-xs" style="color:var(--success)"><i class="fa-solid fa-arrow-down mr-1"></i>-2</div></div>
+      <div class="mon-card"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:var(--brand-subtle)"><i class="fa-solid fa-chart-line text-sm" style="color:var(--brand)"></i></div><div><div class="text-xs" style="color:var(--text-tertiary)">SLA 达标率</div><div class="text-xl font-bold" style="color:var(--text-primary)">99.2%</div></div></div><div class="text-xs" style="color:var(--success)"><i class="fa-solid fa-check mr-1"></i>达标</div></div>
+    </div>
+    <!-- Tab -->
+    <div class="flex gap-1 mb-4 p-1 rounded-lg" style="background:var(--surface-subtle);display:inline-flex">
+      <div class="mon-tab active" data-tab="overview" onclick="switchMonTab('overview',this)"><i class="fa-solid fa-gauge-high mr-1"></i>运行态势</div>
+      <div class="mon-tab" data-tab="health" onclick="switchMonTab('health',this)"><i class="fa-solid fa-heart-pulse mr-1"></i>服务健康</div>
+      <div class="mon-tab" data-tab="trace" onclick="switchMonTab('trace',this)"><i class="fa-solid fa-diagram-project mr-1"></i>调用链路</div>
+      <div class="mon-tab" data-tab="alerts" onclick="switchMonTab('alerts',this)"><i class="fa-solid fa-bell mr-1"></i>告警与整改</div>
+    </div>
+    <!-- Tab1: 运行态势 -->
+    <div class="mon-tab-content" id="tab-overview">
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="mon-card col-span-2">
+          <div class="mon-header"><i class="fa-solid fa-chart-bar" style="color:var(--brand)"></i>调用量趋势（24h）</div>
+          <div class="flex gap-1 items-end h-36" style="padding-top:8px">
+            <div class="bar-col" style="height:25%;background:var(--border-default)"></div><div class="bar-col" style="height:40%;background:var(--border-default)"></div><div class="bar-col" style="height:35%;background:var(--border-default)"></div><div class="bar-col" style="height:55%;background:var(--border-default)"></div>
+            <div class="bar-col" style="height:70%;background:var(--border-default)"></div><div class="bar-col" style="height:80%;background:var(--brand)"></div><div class="bar-col" style="height:88%;background:var(--brand-light)"></div><div class="bar-col" style="height:100%;background:var(--brand-light)"></div>
+            <div class="bar-col" style="height:92%;background:var(--brand-light)"></div><div class="bar-col" style="height:78%;background:var(--brand)"></div><div class="bar-col" style="height:65%;background:var(--border-default)"></div><div class="bar-col" style="height:50%;background:var(--border-default)"></div>
+          </div>
+          <div class="flex justify-between mt-2 text-xs" style="color:var(--text-tertiary)"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+        </div>
+        <div class="mon-card">
+          <div class="mon-header"><i class="fa-solid fa-chart-pie" style="color:var(--success)"></i>SLA 达标率</div>
+          <div class="flex items-center gap-4 py-4">
+            <div class="sla-ring"><svg viewBox="0 0 36 36" width="72" height="72"><circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--border-default)" stroke-width="3"/><circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--success)" stroke-width="3" stroke-dasharray="99 1" stroke-linecap="round"/></svg><div class="center"><div class="text-lg font-bold" style="color:var(--text-primary)">99.2</div><div class="text-[9px]" style="color:var(--text-tertiary)">%</div></div></div>
+            <div class="space-y-1.5 text-xs"><div class="flex items-center gap-2"><span class="status-dot ok"></span><span style="color:var(--text-tertiary)">达标 28/30</span></div><div class="flex items-center gap-2"><span class="status-dot warn"></span><span style="color:var(--text-tertiary)">告警 1</span></div><div class="flex items-center gap-2"><span class="status-dot err"></span><span style="color:var(--text-tertiary)">违规 1</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="mon-card">
+          <div class="mon-header"><i class="fa-solid fa-gauge" style="color:var(--amber)"></i>响应时延分布（P50/P95/P99）</div>
+          <div class="space-y-3">
+            <div><div class="flex justify-between text-xs mb-1"><span style="color:var(--text-tertiary)">P50</span><span style="color:var(--text-primary);font-weight:600">32ms</span></div><div class="h-2 rounded-full" style="background:var(--surface-subtle)"><div class="h-full rounded-full" style="width:32%;background:var(--brand)"></div></div></div>
+            <div><div class="flex justify-between text-xs mb-1"><span style="color:var(--text-tertiary)">P95</span><span style="color:var(--text-primary);font-weight:600">128ms</span></div><div class="h-2 rounded-full" style="background:var(--surface-subtle)"><div class="h-full rounded-full" style="width:70%;background:var(--amber)"></div></div></div>
+            <div><div class="flex justify-between text-xs mb-1"><span style="color:var(--text-tertiary)">P99</span><span style="color:var(--text-primary);font-weight:600">450ms</span></div><div class="h-2 rounded-full" style="background:var(--surface-subtle)"><div class="h-full rounded-full" style="width:90%;background:var(--danger)"></div></div></div>
+          </div>
+        </div>
+        <div class="mon-card">
+          <div class="mon-header"><i class="fa-solid fa-ranking-star" style="color:var(--brand)"></i>调用量 Top5 服务</div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between py-1.5 border-b" style="border-color:var(--border-subtle)"><span class="text-xs" style="color:var(--text-primary);font-family:monospace">oilwell-data-api</span><span class="text-xs" style="color:var(--text-secondary);font-weight:600">32,456</span></div>
+            <div class="flex items-center justify-between py-1.5 border-b" style="border-color:var(--border-subtle)"><span class="text-xs" style="color:var(--text-primary);font-family:monospace">sensor-ingest</span><span class="text-xs" style="color:var(--text-secondary);font-weight:600">28,120</span></div>
+            <div class="flex items-center justify-between py-1.5 border-b" style="border-color:var(--border-subtle)"><span class="text-xs" style="color:var(--text-primary);font-family:monospace">auth-gateway</span><span class="text-xs" style="color:var(--text-secondary);font-weight:600">25,893</span></div>
+            <div class="flex items-center justify-between py-1.5 border-b" style="border-color:var(--border-subtle)"><span class="text-xs" style="color:var(--text-primary);font-family:monospace">data-sync-engine</span><span class="text-xs" style="color:var(--text-secondary);font-weight:600">18,567</span></div>
+            <div class="flex items-center justify-between py-1.5"><span class="text-xs" style="color:var(--text-primary);font-family:monospace">production-report-gen</span><span class="text-xs" style="color:var(--text-secondary);font-weight:600">12,345</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Tab2: 服务健康 -->
+    <div class="mon-tab-content" id="tab-health" style="display:none">
+      <div class="flex items-center gap-3 mb-4 flex-wrap">
+        <select class="filter-select" id="healthStatusFilter" onchange="renderHealthTable()"><option value="">所有状态</option><option value="正常">正常</option><option value="警告">警告</option><option value="异常">异常</option></select>
+        <div class="search-wrap"><i class="fa-solid fa-magnifying-glass text-xs" style="color:var(--text-tertiary)"></i><input type="text" placeholder="搜索服务..." class="input" id="healthSearch" oninput="renderHealthTable()" style="border:none;box-shadow:none;width:180px"></div>
+        <span class="text-xs" style="color:var(--text-tertiary)" id="healthCount">共 15 条</span>
+      </div>
+      <div class="card overflow-hidden"><div style="overflow-x:auto">
+        <table class="data-table"><thead><tr><th>服务名称</th><th>实例</th><th>状态</th><th>平均响应</th><th>最后心跳</th><th>SLA</th><th>操作</th></tr></thead><tbody id="healthBody"></tbody></table>
+      </div></div>
+    </div>
+    <!-- Tab3: 调用链路 -->
+    <div class="mon-tab-content" id="tab-trace" style="display:none">
+      <div class="grid grid-cols-3 gap-4">
+        <div class="mon-card col-span-1">
+          <div class="mon-header"><i class="fa-solid fa-sitemap" style="color:var(--brand)"></i>调用链路</div>
+          <div class="space-y-1" id="traceTree">
+            <div class="chain-node" onclick="selectTrace(this,'oilwell-data-api','23ms')"><span class="status-dot ok"></span><span style="font-family:monospace">oilwell-data-api</span><span class="text-xs" style="color:var(--text-tertiary);margin-left:auto">23ms</span></div>
+            <div class="chain-line"></div>
+            <div class="chain-node" style="padding-left:24px" onclick="selectTrace(this,'data-cleaner','12ms')"><span class="status-dot ok"></span><span style="font-family:monospace">data-cleaner</span><span class="text-xs" style="color:var(--text-tertiary);margin-left:auto">12ms</span></div>
+            <div class="chain-line" style="margin-left:24px"></div>
+            <div class="chain-node" style="padding-left:48px" onclick="selectTrace(this,'feature-extract','8ms')"><span class="status-dot ok"></span><span style="font-family:monospace">feature-extract</span><span class="text-xs" style="color:var(--text-tertiary);margin-left:auto">8ms</span></div>
+            <div class="chain-line" style="margin-left:24px"></div>
+            <div class="chain-node" style="padding-left:24px" onclick="selectTrace(this,'pressure-predict','156ms')"><span class="status-dot warn"></span><span style="font-family:monospace">pressure-predict</span><span class="text-xs" style="color:var(--text-tertiary);margin-left:auto">156ms</span></div>
+            <div class="chain-line"></div>
+            <div class="chain-node" onclick="selectTrace(this,'alarm-dispatcher','2030ms')"><span class="status-dot err"></span><span style="font-family:monospace">alarm-dispatcher</span><span class="text-xs" style="color:var(--text-tertiary);margin-left:auto">2030ms</span></div>
+          </div>
+        </div>
+        <div class="mon-card col-span-2">
+          <div class="mon-header"><i class="fa-solid fa-circle-info" style="color:var(--brand)"></i>调用详情 <span id="traceDetailName" style="color:var(--text-tertiary);font-weight:400">— 选择节点查看</span></div>
+          <div id="traceDetail" style="color:var(--text-tertiary);font-size:12px;padding:20px;text-align:center">点击左侧节点查看调用详情</div>
+        </div>
+      </div>
+    </div>
+    <!-- Tab4: 告警与整改 -->
+    <div class="mon-tab-content" id="tab-alerts" style="display:none">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="mon-card">
+          <div class="mon-header"><i class="fa-solid fa-bell" style="color:var(--danger)"></i>实时告警 <span class="text-xs px-1.5 py-0.5 rounded" style="background:var(--danger-subtle);color:var(--danger);margin-left:auto">3 条</span></div>
+          <div class="alert-critical"><div class="flex items-center justify-between"><span class="text-xs font-semibold" style="color:var(--danger)">CRITICAL</span><span class="text-xs" style="color:var(--text-tertiary)">09:02:15</span></div><div class="text-xs mt-1" style="color:var(--text-primary)">oilwell-data-api 响应超时 5023ms（SLA: ≤2000ms）</div><div class="flex gap-2 mt-2"><button class="btn btn-sm" style="background:var(--danger);color:#fff;font-size:10px;padding:2px 10px;height:24px" onclick="navigateToIncident('oilwell-data-api','响应超时','P1')"><i class="fa-solid fa-bug mr-1"></i>去处理</button></div></div>
+          <div class="alert-warning"><div class="flex items-center justify-between"><span class="text-xs font-semibold" style="color:var(--warning)">WARNING</span><span class="text-xs" style="color:var(--text-tertiary)">09:01:48</span></div><div class="text-xs mt-1" style="color:var(--text-primary)">pressure-predict 响应延迟 156ms（阈值: 100ms）</div></div>
+          <div class="alert-info"><div class="flex items-center justify-between"><span class="text-xs font-semibold" style="color:var(--info)">INFO</span><span class="text-xs" style="color:var(--text-tertiary)">09:00:30</span></div><div class="text-xs mt-1" style="color:var(--text-primary)">sensor-ingest 实例自动扩容 2→4</div></div>
+        </div>
+        <div class="mon-card">
+          <div class="mon-header"><i class="fa-solid fa-clipboard-list" style="color:var(--amber)"></i>整改工单 <span class="text-xs px-1.5 py-0.5 rounded" style="background:var(--warning-subtle);color:var(--warning);margin-left:auto">2 进行中</span></div>
+          <div class="space-y-3">
+            <div class="p-3 rounded-lg" style="background:var(--surface-subtle);border:1px solid var(--border-default)">
+              <div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold" style="color:var(--text-primary)">RT-2026-0042</span><span class="badge" style="background:var(--warning-subtle);color:var(--warning)">进行中</span></div>
+              <div class="text-xs mb-2" style="color:var(--text-secondary)">oilwell-data-api 响应超时优化 — 配置连接池与超时参数</div>
+              <div class="flex items-center justify-between text-xs" style="color:var(--text-tertiary)"><span>负责人: 张架构</span><span>截止: 2026-05-23</span></div>
+            </div>
+            <div class="p-3 rounded-lg" style="background:var(--surface-subtle);border:1px solid var(--border-default)">
+              <div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold" style="color:var(--text-primary)">RT-2026-0041</span><span class="badge" style="background:var(--info-subtle);color:var(--info)">待处理</span></div>
+              <div class="text-xs mb-2" style="color:var(--text-secondary)">alarm-dispatcher 高延迟排查 — 检查消息队列积压</div>
+              <div class="flex items-center justify-between text-xs" style="color:var(--text-tertiary)"><span>负责人: 王技术</span><span>截止: 2026-05-24</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mon-card">
+        <div class="mon-header"><i class="fa-solid fa-file-lines" style="color:var(--success)"></i>SLA 达标率统计</div>
+        <div class="card overflow-hidden"><div style="overflow-x:auto">
+          <table class="data-table"><thead><tr><th>服务名称</th><th>SLA 目标</th><th>本月达标率</th><th>上月达标率</th><th>趋势</th><th>状态</th></tr></thead>
+            <tbody id="slaBody">
+              <tr><td style="font-family:monospace">oilwell-data-api</td><td>99.9%</td><td>99.2%</td><td>99.8%</td><td style="color:var(--danger)"><i class="fa-solid fa-arrow-down mr-1"></i>-0.6%</td><td><span class="badge" style="background:var(--danger-subtle);color:var(--danger)">关注</span></td></tr>
+              <tr><td style="font-family:monospace">auth-gateway</td><td>99.99%</td><td>99.97%</td><td>99.98%</td><td style="color:var(--text-tertiary)">-0.01%</td><td><span class="badge" style="background:var(--success-subtle);color:var(--success)">达标</span></td></tr>
+              <tr><td style="font-family:monospace">sensor-ingest</td><td>99.5%</td><td>99.6%</td><td>99.3%</td><td style="color:var(--success)"><i class="fa-solid fa-arrow-up mr-1"></i>+0.3%</td><td><span class="badge" style="background:var(--success-subtle);color:var(--success)">达标</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+<!-- 整改工单弹窗 -->
+<div class="modal-overlay" id="remediationModal"><div class="modal-box" id="remediationContent"></div></div>
+<script>
+var MON_SERVICE_DATA = [
+  { name:'oilwell-data-api',instances:3,status:'正常',resp:'23ms',heartbeat:'2026-05-21 09:58:12',desc:'油井数据采集接口服务',sla:'99.2%' },
+  { name:'pressure-predict',instances:5,status:'警告',resp:'156ms',heartbeat:'2026-05-21 09:57:55',desc:'管网压力预测引擎',sla:'98.5%' },
+  { name:'flow-rate-analyzer',instances:2,status:'警告',resp:'112ms',heartbeat:'2026-05-21 09:56:30',desc:'流量分析服务',sla:'97.8%' },
+  { name:'well-log-service',instances:4,status:'正常',resp:'18ms',heartbeat:'2026-05-21 09:58:01',desc:'测井数据管理',sla:'99.9%' },
+  { name:'production-report-gen',instances:2,status:'正常',resp:'67ms',heartbeat:'2026-05-21 09:57:40',desc:'生产报表生成',sla:'99.5%' },
+  { name:'alarm-dispatcher',instances:3,status:'异常',resp:'2030ms',heartbeat:'2026-05-21 09:55:10',desc:'告警分发服务',sla:'85.2%' },
+  { name:'equipment-monitor',instances:6,status:'正常',resp:'31ms',heartbeat:'2026-05-21 09:58:08',desc:'设备监控服务',sla:'99.8%' },
+  { name:'data-sync-engine',instances:2,status:'正常',resp:'89ms',heartbeat:'2026-05-21 09:57:22',desc:'数据同步引擎',sla:'99.1%' },
+  { name:'auth-gateway',instances:8,status:'正常',resp:'5ms',heartbeat:'2026-05-21 09:58:15',desc:'统一认证网关',sla:'99.97%' },
+  { name:'log-aggregator',instances:3,status:'警告',resp:'156ms',heartbeat:'2026-05-21 09:56:48',desc:'日志汇聚服务',sla:'96.5%' },
+  { name:'sensor-ingest',instances:4,status:'正常',resp:'12ms',heartbeat:'2026-05-21 09:58:10',desc:'传感器接入',sla:'99.6%' },
+  { name:'api-rate-limiter',instances:2,status:'正常',resp:'3ms',heartbeat:'2026-05-21 09:58:05',desc:'API 限流',sla:'100%' },
+  { name:'anomaly-detector',instances:3,status:'异常',resp:'980ms',heartbeat:'2026-05-21 09:54:30',desc:'异常检测服务',sla:'88.0%' },
+  { name:'config-center',instances:2,status:'正常',resp:'15ms',heartbeat:'2026-05-21 09:58:03',desc:'配置中心',sla:'99.99%' },
+  { name:'scheduler-engine',instances:3,status:'正常',resp:'42ms',heartbeat:'2026-05-21 09:57:55',desc:'任务调度引擎',sla:'99.3%' }
+];
+// 跳转到异常处理
+function navigateToIncident(service,desc,level){
+  Scaffold.navigateTo('incidents.html',{service:service,desc:desc,level:level});
+}
+
+function switchMonTab(tabId,el){
+  document.querySelectorAll('.mon-tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  document.querySelectorAll('.mon-tab-content').forEach(function(c){c.style.display='none';});
+  document.getElementById('tab-'+tabId).style.display='block';
+}
+function renderHealthTable(){
+  var status=document.getElementById('healthStatusFilter').value;
+  var kw=document.getElementById('healthSearch').value.trim().toLowerCase();
+  var data=MON_SERVICE_DATA.filter(function(s){
+    if(status&&s.status!==status)return false;
+    if(kw&&s.name.indexOf(kw)===-1)return false;
+    return true;
+  });
+  var h='';
+  for(var i=0;i<data.length;i++){
+    var s=data[i];var sc,sbg;
+    if(s.status==='正常'){sc='var(--success)';sbg='var(--success-subtle)';}
+    else if(s.status==='警告'){sc='var(--amber)';sbg='var(--warning-subtle)';}
+    else{sc='var(--danger)';sbg='var(--danger-subtle)';}
+    var sSla=parseFloat(s.sla);var slaOk=sSla>=99;
+    h+='<tr><td style="font-family:monospace">'+s.name+'</td>'
+      +'<td>'+s.instances+'</td>'
+      +'<td><span class="badge" style="background:'+sbg+';color:'+sc+'"><span class="status-dot" style="background:'+sc+';width:6px;height:6px;display:inline-block;margin-right:4px"></span>'+s.status+'</span></td>'
+      +'<td style="font-family:monospace">'+s.resp+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+s.heartbeat+'</td>'
+      +'<td><span class="badge" style="background:'+(slaOk?'var(--success-subtle)':'var(--danger-subtle)')+';color:'+(slaOk?'var(--success)':'var(--danger)')+'">'+s.sla+'</span></td>'
+      +'<td><a href="javascript:void(0)" class="btn-text" onclick="viewServiceDetail(\''+s.name+'\')">详情</a></td></tr>';
+  }
+  document.getElementById('healthBody').innerHTML=h;
+  document.getElementById('healthCount').textContent='共 '+data.length+' 条';
+}
+function selectTrace(el,name,time){
+  document.querySelectorAll('.chain-node').forEach(function(n){n.style.background='';});
+  el.style.background='var(--brand-subtle)';
+  document.getElementById('traceDetailName').textContent='— '+name;
+  document.getElementById('traceDetail').innerHTML='<div style="text-align:left;padding:0"><div class="mon-header" style="margin-top:0">调用详情</div>'
+    +'<div class="flex gap-6 mb-4"><div><div class="text-xs" style="color:var(--text-tertiary)">服务名称</div><div class="text-sm font-semibold" style="font-family:monospace;color:var(--text-primary)">'+name+'</div></div>'
+    +'<div><div class="text-xs" style="color:var(--text-tertiary)">响应时间</div><div class="text-sm font-semibold" style="color:var(--text-primary)">'+time+'</div></div>'
+    +'<div><div class="text-xs" style="color:var(--text-tertiary)">调用次数</div><div class="text-sm font-semibold" style="color:var(--text-primary)">1,245</div></div></div>'
+    +'<div class="mon-header">请求参数</div><div class="p-3 rounded text-xs font-mono mb-3" style="background:var(--surface-subtle);color:var(--text-secondary)">{"service":"'+name+'","method":"GET","path":"/api/v1/data","timestamp":"2026-05-21T09:58:12Z"}</div>'
+    +'<div class="mon-header">上下游依赖</div><div class="flex items-center gap-2 text-xs flex-wrap"><span class="px-2 py-1 rounded" style="background:var(--success-subtle);color:var(--success)">sensor-ingest</span><i class="fa-solid fa-arrow-right" style="color:var(--text-tertiary);font-size:10px"></i><span class="px-2 py-1 rounded" style="background:var(--brand-subtle);color:var(--brand)">'+name+'</span><i class="fa-solid fa-arrow-right" style="color:var(--text-tertiary);font-size:10px"></i><span class="px-2 py-1 rounded" style="background:var(--danger-subtle);color:var(--danger)">alarm-dispatcher</span></div></div>';
+}
+function viewServiceDetail(name){Scaffold.showToast('查看 '+name+' 详情','info');}
+function createRemediation(serviceName){
+  var h='<div class="modal-header"><h3>创建整改工单</h3><div class="modal-close" onclick="closeRemediationModal()"><i class="fa-solid fa-xmark"></i></div></div>'
+    +'<div class="modal-body"><div class="form-section"><div class="form-section-title"><i class="fa-solid fa-bug"></i>异常信息</div>'
+    +'<div class="form-group"><label>关联服务</label><input type="text" class="input" value="'+serviceName+'" readonly></div>'
+    +'<div class="form-group"><label><span class="req">*</span>问题描述</label><textarea class="textarea" id="rtDesc" placeholder="描述异常现象和影响范围"></textarea></div></div>'
+    +'<div class="form-section"><div class="form-section-title"><i class="fa-solid fa-wrench"></i>整改方案</div>'
+    +'<div class="form-group"><label><span class="req">*</span>整改措施</label><textarea class="textarea" id="rtAction" placeholder="描述具体的整改措施"></textarea></div>'
+    +'<div class="form-row"><div class="form-group"><label>负责人</label><select class="filter-select" id="rtOwner"><option>张架构</option><option>王技术</option><option>赵工程</option><option>李业务</option></select></div>'
+    +'<div class="form-group"><label>截止日期</label><input type="date" class="input" id="rtDeadline"></div></div></div></div>'
+    +'<div class="modal-footer"><button class="btn btn-outline" onclick="closeRemediationModal()">取消</button><button class="btn btn-primary" onclick="submitRemediation()"><i class="fa-solid fa-check"></i>提交整改</button></div>';
+  document.getElementById('remediationContent').innerHTML=h;
+  Scaffold.showModal('remediationModal');
+}
+function closeRemediationModal(){Scaffold.hideModal('remediationModal');}
+function submitRemediation(){
+  var desc=document.getElementById('rtDesc').value.trim();
+  if(!desc){Scaffold.showToast('请输入问题描述','warning');return;}
+  if(!document.getElementById('rtAction').value.trim()){Scaffold.showToast('请输入整改措施','warning');return;}
+  closeRemediationModal();
+  Scaffold.showToast('整改工单已创建，编号 RT-2026-00'+Math.floor(Math.random()*50),'success');
+}
+renderHealthTable();
+Scaffold.init('monitoring');
+</script>
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>装配画布 - 业务中台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+<script src="../_shared/models/enums.js"></script>
+<script src="../_shared/models/utils.js"></script>
+<script src="../_shared/scaffold.js"></script>
+<!-- models.js 已在 normalizeDemands 中内联，无需外部引用 -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Microsoft YaHei',sans-serif;background:var(--border-subtle);overflow-x:hidden}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--surface-subtle)}::-webkit-scrollbar-thumb{background:var(--border-subtle);border-radius:3px}
+.component-card{cursor:grab;user-select:none;transition:all 0.2s;padding:8px;border-radius:4px;margin-bottom:8px;background:var(--surface-base);border:1px solid var(--border-default)}
+.component-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.1);border-color:var(--brand)}.component-card:active{cursor:grabbing}
+.canvas-node{position:absolute;cursor:move;z-index:10}.canvas-node.selected .node-border{border-color:var(--brand);border-width:2px}
+.canvas-node *{user-select:none}
+.tab-btn{padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}.tab-btn.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+.filter-btn{padding:4px 12px;font-size:12px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.2s}
+.filter-btn.active{background:var(--brand);color:var(--text-inverse);border-color:var(--brand)}.filter-btn:hover{background:var(--brand-subtle);color:var(--brand)}
+.node-type-item.active{background:var(--surface-base);border-left-color:var(--brand)}
+.node-type-item.active .text-xs{font-weight:600}
+.workflow-node-item{padding:10px;border:1px solid var(--border-default);border-radius:4px;margin-bottom:8px;background:var(--surface-base);cursor:pointer;transition:all 0.2s}
+.workflow-node-item:hover{border-color:var(--brand);box-shadow:0 2px 8px rgba(74,125,224,0.1)}
+.workflow-node-item.selected{border-color:var(--brand);background:var(--brand-subtle)}
+.component-select-item{padding:10px;border:1px solid var(--border-default);border-radius:4px;margin-bottom:8px;background:var(--surface-base);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:10px}
+.component-select-item:hover{border-color:var(--brand)}
+.component-select-item.selected{border-color:var(--brand);background:var(--brand-subtle)}
+.relevance-badge{font-size:10px;padding:2px 6px;border-radius:999px;background:var(--brand-subtle);color:var(--brand)}
+.relevance-badge.high{background:var(--success-subtle);color:var(--success)}
+.demand-tree-row{padding:10px 12px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background .15s}
+.demand-tree-row:hover{background:var(--surface-subtle)}
+.demand-tree-row.child{padding-left:60px}
+.demand-tree-id{width:72px;flex-shrink:0;font-family:monospace;font-size:12px;color:var(--brand);white-space:nowrap}
+.data-item-config{padding:12px;border:1px solid var(--border-default);border-radius:4px;margin-bottom:8px;background:var(--surface-base)}
+.data-item-config:hover{border-color:var(--brand)}
+.data-item-selector{max-height:300px;overflow-y:auto;border:1px solid var(--border-default);border-radius:4px;padding:8px;background:var(--surface-base)}
+.data-item-option{padding:8px;cursor:pointer;border-radius:4px;margin-bottom:4px}
+.data-item-option:hover{background:var(--brand-subtle)}
+.data-item-option.selected{background:var(--brand);color:var(--text-inverse)}
+.formula-editor{font-family:monospace;font-size:12px;border:1px solid var(--border-default);border-radius:4px;padding:8px;background:var(--surface-subtle);min-height:60px}
+.canvas-node-hotspot{position:absolute;cursor:pointer;border:2px dashed var(--brand);background:rgba(74,125,224,0.1);border-radius:4px}
+.canvas-node-hotspot:hover{background:rgba(74,125,224,0.2)}
+.canvas-node-hotspot.selected{border-color:var(--amber);background:rgba(250,140,22,0.2)}
+.publish-info{padding:16px;background:var(--success-subtle);border:1px solid var(--success);border-radius:4px;margin-bottom:16px}
+.resize-handle{width:4px;cursor:col-resize;background:transparent;transition:background 0.2s}
+.resize-handle:hover{background:var(--brand)}
+.resize-handle.vertical{height:4px;cursor:row-resize}
+.panel-toggle{width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;transition:all 0.2s}
+.panel-toggle:hover{background:var(--brand-subtle);color:var(--brand)}
+/* ---- 左侧面板收缩态图标栏 ---- */
+#collapsedIconBar{width:52px;min-width:52px;background:var(--surface-subtle);border-right:1px solid var(--border-default);display:none;flex-direction:column;align-items:center;padding:8px 0;overflow:visible;transition:width 0.2s}
+.collapsed-scroll-area{flex:1;overflow-y:auto;overflow-x:visible;display:flex;flex-direction:column;align-items:center}
+.collapsed-scroll-area::-webkit-scrollbar{width:0}
+.collapsed-icon-item{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:grab;transition:all 0.15s;margin-bottom:6px;position:relative;flex-shrink:0}
+.collapsed-icon-item:hover{background:var(--brand-subtle);transform:scale(1.1)}
+.collapsed-icon-tooltip{position:fixed;background:var(--surface-base);border:1px solid var(--border-default);border-radius:8px;padding:10px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:9999;white-space:nowrap;min-width:140px;pointer-events:none;opacity:0;transition:opacity 0.15s}
+.collapsed-icon-tooltip.visible{opacity:1}
+.collapsed-icon-tooltip .tip-name{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:3px}
+.collapsed-icon-tooltip .tip-category{font-size:10px;color:var(--text-tertiary);margin-bottom:0}
+.collapsed-icon-tooltip .tip-arrow{position:absolute;top:50%;width:0;height:0;border:6px solid transparent}
+/* 左侧 tooltip 箭头朝左 */
+.collapsed-icon-tooltip.arrow-left .tip-arrow{left:-12px;transform:translateY(-50%);border-right-color:var(--border-default)}
+.collapsed-icon-tooltip.arrow-left .tip-arrow::after{content:'';position:absolute;left:-5px;top:-5px;border:5px solid transparent;border-right-color:var(--text-inverse)}
+/* 右侧 tooltip 箭头朝右 */
+.collapsed-icon-tooltip.arrow-right .tip-arrow{right:-12px;transform:translateY(-50%);border-left-color:var(--border-default)}
+.collapsed-icon-tooltip.arrow-right .tip-arrow::after{content:'';position:absolute;right:-5px;top:-5px;border:5px solid transparent;border-left-color:var(--text-inverse)}
+/* ---- 连接线 ---- */
+.connection-line{position:absolute;pointer-events:stroke;cursor:pointer;z-index:1}
+.connection-line:hover{stroke:var(--amber)!important;stroke-width:3!important}
+/* ---- 连接端口：默认隐藏，hover 节点时显示 ---- */
+.connection-port{width:12px;height:12px;border-radius:50%;background:var(--surface-base);border:2px solid var(--brand);cursor:crosshair;position:absolute;z-index:60;transition:all 0.15s;opacity:0;pointer-events:none}
+.canvas-node:hover .connection-port,.canvas-node.selected .connection-port{opacity:1;pointer-events:auto}
+.connection-port:hover{background:var(--brand);transform:scale(1.4);box-shadow:0 0 0 3px rgba(74,125,224,0.25)}
+.connection-port.input-port{left:-6px;top:50%;margin-top:-6px}
+.connection-port.output-port{right:-6px;top:50%;margin-top:-6px}
+.connection-port.dragging{background:var(--amber);border-color:var(--amber);opacity:1;transform:scale(1.5)}
+/* ---- 节点悬浮删除按钮 ---- */
+.node-delete-btn{position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;background:var(--surface-base);border:1.5px solid var(--danger);color:var(--danger);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:70;transition:all 0.15s;font-size:10px;box-shadow:0 1px 4px rgba(0,0,0,0.18)}
+.node-delete-btn:hover{background:var(--danger);color:var(--text-inverse);transform:scale(1.15)}
+.canvas-node:hover .node-delete-btn,.canvas-node.selected .node-delete-btn{display:flex}
+/* ---- 底部统一工具栏（Figma 风格）---- */
+.canvas-toolbar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:0;background:var(--surface-base);border-radius:10px;padding:5px 8px;box-shadow:0 4px 16px rgba(0,0,0,0.12),0 1px 4px rgba(0,0,0,0.08);z-index:50;border:1px solid var(--border-default)}
+.canvas-toolbar-divider{width:1px;height:20px;background:var(--border-default);margin:0 6px;flex-shrink:0}
+.canvas-toolbar-btn{width:32px;height:32px;border-radius:7px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-size:14px;color:var(--text-secondary);position:relative}
+.canvas-toolbar-btn:hover{background:var(--surface-hover);color:var(--text-primary)}
+.canvas-toolbar-btn.active{background:var(--brand-subtle);color:var(--brand)}
+.canvas-toolbar-btn[title]:hover::after{content:attr(title);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:var(--text-inverse);font-size:11px;padding:3px 8px;border-radius:5px;white-space:nowrap;pointer-events:none}
+.canvas-zoom-level{font-size:12px;font-weight:600;color:var(--text-primary);min-width:42px;text-align:center;cursor:pointer;padding:0 2px}
+.canvas-zoom-level:hover{color:var(--brand)}
+/* 保留旧类名兼容 */
+.canvas-zoom-controls{display:none}
+.canvas-zoom-btn{display:none}
+.canvas-panning{cursor:grabbing!important}
+.canvas-grab{cursor:grab!important}
+</style>
+</head>
+<body>
+<!-- 顶部导航栏 -->
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1">
+    <div class="flex items-center gap-2 mr-6">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(50% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div>
+      <span class="text-white font-semibold text-base">业务中台装配环境</span>
+    </div>
+    <nav class="flex items-center gap-0.5">
+      <a href="../index.html" class="nav-item"><i class="fa-solid fa-home"></i><span>首页</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm">
+    <div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div>
+    <div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div>
+    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div>
+    <span class="text-xs">张架构</span>
+  </div>
+</header>
+
+<div class="flex" style="height:calc(100vh - 48px)">
+<!-- 左侧全局菜单 -->
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+
+<!-- 主内容区 -->
+<main class="flex-1 flex flex-col overflow-hidden">
+  <div id="breadcrumb"></div>
+  <!-- ====== Top Nav Bar ====== -->
+  <div class="flex items-center justify-between px-4 py-1.5 border-b" style="border-color:var(--border-subtle);background:var(--surface-raised)">
+    <a href="workspace.html" class="text-xs" style="color:var(--brand)"><i class="fa-solid fa-arrow-left"></i> 返回工作台</a>
+    <div class="flex items-center gap-2 text-xs">
+      <a href="components.html" style="color:var(--text-tertiary)">← 上一步：组件编排</a>
+      <span style="color:var(--border-default)">|</span>
+      <a href="data-service.html" style="color:var(--brand);font-weight:500">下一步：数据标准接入 →</a>
+    </div>
+  </div>
+  <!-- ====== Page Header ====== -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Collaborative Design</div>
+      <h2>领域服务协同可视化设计</h2>
+      <div class="subtitle flex items-center gap-2">拖拽编排业务链路，配置消息路由与事务策略，检测跨域协同冲突
+        <div id="demandBar"></div>
+        <!-- 保留原 DOM 引用（隐藏）供现有 JS 使用 -->
+        <input type="hidden" id="demandSearchInput">
+        <div id="demandResults" style="display:none"></div>
+        <div id="selectedDemandDisplay" style="display:none">
+          <span id="selectedDemandName"></span>
+          <span id="selectedDemandStatus"></span>
+        </div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <span id="saveStatus" class="text-xs mr-2" style="color:var(--success)"></span>
+      <button class="btn btn-outline btn-sm" onclick="manualSaveCanvas()"><i class="fa-solid fa-save"></i> 保存画布</button>
+    </div>
+  </div>
+  <!-- 画布区域 -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- 左侧工作流配置栏 -->
+    <aside class="bg-white border-r flex flex-col flex-shrink-0 relative" style="border-color:var(--border-default);width:288px;min-width:52px;max-width:600px" id="workflowPanel">
+      <div class="p-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+        <div class="flex items-center gap-2">
+          <button class="panel-toggle" onclick="togglePanel('workflow')" title="折叠/展开">
+            <i class="fa-solid fa-chevron-left text-xs" id="workflowToggleIcon"></i>
+          </button>
+          <div class="text-xs font-semibold" id="leftPanelTitle">领域工作流</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="importBusinessFlow()" id="importFlowBtn"><i class="fa-solid fa-file-import mr-1"></i>导入业务流程</button>
+        <button class="btn btn-sm" style="background:var(--brand-subtle);color:var(--brand);border:1px solid var(--border-default);font-size:11px;padding:2px 8px" onclick="importTestFlowData()" title="导入油气生产数据实时采集服务测试样例（13个节点）"><i class="fa-solid fa-flask mr-1"></i>测试样例</button>
+      </div>
+      <!-- Tab 切换栏 -->
+      <div class="flex border-b text-xs" style="border-color:var(--border-default);background:var(--surface-subtle)">
+        <div class="flex-1 text-center py-2 cursor-pointer font-medium transition-all" style="color:var(--brand);border-bottom:2px solid var(--brand);background:var(--surface-base)" id="tabOrchestrate" onclick="switchLeftTab('orchestrate')">编排</div>
+        <div class="flex-1 text-center py-2 cursor-pointer transition-all" style="color:var(--text-tertiary);border-bottom:2px solid transparent" id="tabRouting" onclick="switchLeftTab('routing')">路由</div>
+        <div class="flex-1 text-center py-2 cursor-pointer transition-all" style="color:var(--text-tertiary);border-bottom:2px solid transparent" id="tabDetection" onclick="switchLeftTab('detection')">检测</div>
+      </div>
+      <!-- Tab 内容容器：编排 -->
+      <div id="tabContentOrchestrate" class="flex-1 flex flex-col overflow-hidden">
+        <div class="p-3 pt-2">
+          <div class="text-[10px]" style="color:var(--text-tertiary)" id="workflowHint">请先选择需求并配置工作流节点</div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3" id="workflowNodeList">
+          <div class="text-center py-8" style="color:var(--text-tertiary)">
+            <i class="fa-solid fa-diagram-project text-3xl mb-2" style="color:var(--border-subtle)"></i>
+            <div class="text-xs">暂无工作流节点</div>
+            <div class="text-[10px] mt-1">选择需求后添加节点</div>
+          </div>
+        </div>
+      </div>
+      <!-- Tab 内容容器：路由配置 -->
+      <div id="tabContentRouting" class="flex-1 flex-col overflow-hidden" style="display:none">
+        <div class="flex-1 overflow-y-auto" id="routingConfigPanel">
+          <div class="text-center py-8" style="color:var(--text-tertiary)">
+            <i class="fa-solid fa-route text-3xl mb-2" style="color:var(--border-subtle)"></i>
+            <div class="text-xs">暂无路由配置</div>
+            <div class="text-[10px] mt-1">请先编排工作流节点并建立连接</div>
+          </div>
+        </div>
+      </div>
+      <!-- Tab 内容容器：冲突检测 -->
+      <div id="tabContentDetection" class="flex-1 flex-col overflow-hidden" style="display:none">
+        <div class="p-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+          <div class="text-xs font-medium">检测结果</div>
+          <button class="btn btn-primary btn-sm" onclick="runConflictDetection()"><i class="fa-solid fa-play mr-1"></i>开始检测</button>
+        </div>
+        <div class="flex-1 overflow-y-auto" id="detectionResultPanel">
+          <div class="text-center py-8" style="color:var(--text-tertiary)">
+            <i class="fa-solid fa-shield text-3xl mb-2" style="color:var(--border-subtle)"></i>
+            <div class="text-xs">点击"开始检测"检查协同链路</div>
+            <div class="text-[10px] mt-1">将检测循环依赖、协议不一致、配置缺失等</div>
+          </div>
+        </div>
+      </div>
+      <!-- 右侧调节手柄 -->
+      <div class="resize-handle absolute top-0 right-0 h-full" onmousedown="startResize(event,'workflow')"></div>
+    </aside>
+
+    <!-- 左侧面板收缩态：只显示图标 + tooltip -->
+    <div id="collapsedIconBar" class="flex-shrink-0 relative">
+      <div class="flex flex-col items-center mb-2 flex-shrink-0">
+        <button class="panel-toggle" onclick="togglePanel('workflow')" title="展开面板" style="margin-bottom:6px">
+          <i class="fa-solid fa-chevron-right text-xs"></i>
+        </button>
+        <div style="width:32px;height:1px;background:var(--border-default)"></div>
+      </div>
+      <div id="collapsedIconList" class="collapsed-scroll-area"></div>
+      <!-- 右侧分割线：支持从图标栏往外拖展开面板 -->
+      <div class="resize-handle absolute top-0 right-0 h-full" onmousedown="startResize(event,'workflow')"></div>
+    </div>
+
+    <!-- 画布区域 -->
+    <div class="flex-1 relative overflow-hidden" style="background:var(--border-subtle)" id="canvasContainer">
+      <!-- 画布遮罩：未配置工作流时显示 -->
+      <div id="canvasMask" class="absolute inset-0 flex items-center justify-center" style="background:rgba(238,241,246,0.9);z-index:100">
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:var(--brand-subtle)">
+            <i class="fa-solid fa-lock text-2xl" style="color:var(--brand)"></i>
+          </div>
+          <div class="text-sm font-medium" style="color:var(--text-secondary)">画布操作已锁定</div>
+          <div class="text-xs mt-1" style="color:var(--text-tertiary)">请先选择需求并配置工作流节点</div>
+        </div>
+      </div>
+      <div id="canvas" class="absolute inset-0 canvas-grab" style="background-image:radial-gradient(circle,var(--border-default) 1px,transparent 1px);background-size:16px 16px;transform-origin:0 0">
+        <!-- 画布中的组件 -->
+      </div>
+      <!-- 统一画布工具栏 -->
+      <div class="canvas-toolbar" id="canvasToolbar">
+        <!-- 连线工具组 -->
+        <button class="canvas-toolbar-btn" id="connectModeBtn" onclick="toggleConnectionMode()" title="连线模式（C）">
+          <i class="fa-solid fa-bezier-curve"></i>
+        </button>
+        <button class="canvas-toolbar-btn" onclick="clearAllConnections()" title="清除全部连线">
+          <i class="fa-solid fa-eraser"></i>
+        </button>
+        <!-- 分隔线 -->
+        <div class="canvas-toolbar-divider"></div>
+        <!-- 缩放控件 -->
+        <button class="canvas-toolbar-btn" onclick="zoomCanvas(-0.1)" title="缩小（-）">
+          <i class="fa-solid fa-minus text-xs"></i>
+        </button>
+        <span class="canvas-zoom-level" id="zoomLevel" onclick="resetCanvasView()" title="重置视图（双击）">100%</span>
+        <button class="canvas-toolbar-btn" onclick="zoomCanvas(0.1)" title="放大（+）">
+          <i class="fa-solid fa-plus text-xs"></i>
+        </button>
+        <!-- 分隔线 -->
+        <div class="canvas-toolbar-divider"></div>
+        <!-- 适应屏幕 -->
+        <button class="canvas-toolbar-btn" onclick="resetCanvasView()" title="适应屏幕（F）">
+          <i class="fa-solid fa-maximize text-xs"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 右侧属性面板 -->
+    <!-- 右侧属性面板 -->
+    <aside class="bg-white border-l flex flex-col flex-shrink-0 relative" style="border-color:var(--border-default);width:320px;min-width:52px;max-width:600px" id="propertyPanel">
+      <!-- 面板头部 -->
+      <div class="p-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+        <div class="flex items-center gap-2">
+          <button class="panel-toggle" onclick="togglePanel('property')" title="折叠/展开">
+            <i class="fa-solid fa-chevron-right text-xs" id="propertyToggleIcon"></i>
+          </button>
+          <div class="text-xs font-semibold" id="propertyPanelTitle">属性配置</div>
+        </div>
+      </div>
+      <!-- 左侧调节手柄 -->
+      <div class="resize-handle absolute top-0 left-0 h-full" onmousedown="startResize(event,'property')"></div>
+
+      <!-- 工作流节点配置模式 -->
+      <div id="workflowConfigPanel" class="flex-1 flex flex-col overflow-hidden" style="display:none">
+        <div class="px-4 py-3 border-b" style="border-color:var(--border-default)">
+          <div class="text-xs font-semibold">工作流节点配置</div>
+          <div class="text-[10px] mt-1" style="color:var(--text-tertiary)" id="currentNodeInfo">节点名称</div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4" id="workflowConfigContent">
+          <!-- 动态生成配置内容 -->
+        </div>
+      </div>
+      <!-- 画布节点属性编辑模式 -->
+      <div id="canvasNodePanel" class="flex-1 flex flex-col overflow-hidden">
+        <div class="px-4 py-3 border-b" style="border-color:var(--border-default)">
+          <div class="text-xs font-semibold" id="canvasNodeTitle">组件属性</div>
+          <div class="text-[10px] mt-1" style="color:var(--text-tertiary)" id="canvasNodeSubtitle">组件名称</div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4" id="canvasNodeConfigContent">
+          <!-- 动态生成属性配置内容 -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧面板收缩态：只显示图标 + tooltip -->
+    <div id="collapsedPropertyBar" class="flex-shrink-0 relative" style="width:52px;min-width:52px;background:var(--surface-subtle);border-left:1px solid var(--border-default);display:none;flex-direction:column;align-items:center;padding:8px 0;overflow:visible">
+      <div class="flex flex-col items-center mb-2 flex-shrink-0">
+        <button class="panel-toggle" onclick="togglePanel('property')" title="展开面板" style="margin-bottom:6px">
+          <i class="fa-solid fa-chevron-left text-xs"></i>
+        </button>
+        <div style="width:32px;height:1px;background:var(--border-default)"></div>
+      </div>
+      <div id="collapsedPropertyIconList" class="collapsed-scroll-area"></div>
+      <!-- 左侧分割线：支持从图标栏往外拖展开面板 -->
+      <div class="resize-handle absolute top-0 left-0 h-full" onmousedown="startResize(event,'property')"></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- 发布确认弹窗 -->
+<div id="publishModal" class="fixed inset-0 bg-black bg-opacity-45 hidden items-center justify-center" style="z-index:2000">
+  <div class="bg-white rounded-lg w-[600px] max-h-[80vh] overflow-y-auto">
+    <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+      <h3 class="text-base font-semibold">发布确认</h3>
+      <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100" onclick="closePublishModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <h4 class="text-xs font-semibold mb-2">服务信息</h4>
+        <div class="text-sm space-y-1" style="color:var(--text-secondary)">
+          <div>服务名称：管网压力分析服务</div>
+          <div>版本号：V1.0</div>
+          <div>组件数量：2 个</div>
+        </div>
+      </div>
+      <div class="border-t pt-4" style="border-color:var(--border-default)">
+        <h4 class="text-xs font-semibold mb-2">关联需求</h4>
+        <div class="p-3 rounded text-sm" style="background:var(--success-subtle);border:1px solid var(--success)">
+          <div class="font-medium">DMD-0024 生产数据实时采集服务</div>
+          <div class="mt-1">状态将更新为：<span style="color:var(--success);font-weight:600">已上线</span></div>
+        </div>
+      </div>
+      <div class="border-t pt-4" style="border-color:var(--border-default)">
+        <h4 class="text-xs font-semibold mb-2">发布环境</h4>
+        <label class="flex items-center gap-2 text-sm mb-2"><input type="radio" name="env"> 测试环境</label>
+        <label class="flex items-center gap-2 text-sm"><input type="radio" name="env" checked> 生产环境</label>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t flex justify-end gap-2" style="border-color:var(--border-default)">
+      <button class="btn btn-outline" onclick="closePublishModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmPublish()">确认发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- 添加工作流节点弹窗 -->
+<div id="workflowNodeModal" class="fixed inset-0 bg-black bg-opacity-45 hidden items-center justify-center" style="z-index:2000">
+  <div class="bg-white rounded-lg w-[720px] max-h-[85vh] overflow-hidden flex flex-col">
+    <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+      <h3 class="text-sm font-semibold">配置工作流节点</h3>
+      <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100" onclick="closeWorkflowNodeModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex-1 flex overflow-hidden">
+      <!-- 左侧：节点类型选择 -->
+      <div class="w-48 border-r flex flex-col" style="border-color:var(--border-default);background:var(--surface-subtle)">
+        <div class="p-3 text-xs font-semibold" style="color:var(--text-secondary)">节点类型</div>
+        <div class="flex-1 overflow-y-auto">
+          <div class="node-type-item p-3 cursor-pointer hover:bg-white border-l-2 border-transparent" data-type="component" onclick="selectNodeType('component',this)">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded flex items-center justify-center" style="background:var(--brand)"><i class="fa-solid fa-cube text-white text-xs"></i></div>
+              <div>
+                <div class="text-xs font-medium">组件</div>
+                <div class="text-[10px]" style="color:var(--text-tertiary)">业务组件</div>
+              </div>
+            </div>
+          </div>
+          <div class="node-type-item p-3 cursor-pointer hover:bg-white border-l-2 border-transparent" data-type="rule" onclick="selectNodeType('rule',this)">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded flex items-center justify-center" style="background:var(--warning)"><i class="fa-solid fa-sliders text-white text-xs"></i></div>
+              <div>
+                <div class="text-xs font-medium">规则配置</div>
+                <div class="text-[10px]" style="color:var(--text-tertiary)">业务规则</div>
+              </div>
+            </div>
+          </div>
+          <div class="node-type-item p-3 cursor-pointer hover:bg-white border-l-2 border-transparent" data-type="data" onclick="selectNodeType('data',this)">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded flex items-center justify-center" style="background:var(--success)"><i class="fa-solid fa-database text-white text-xs"></i></div>
+              <div>
+                <div class="text-xs font-medium">数据服务</div>
+                <div class="text-[10px]" style="color:var(--text-tertiary)">数据接口</div>
+              </div>
+            </div>
+          </div>
+          <div class="node-type-item p-3 cursor-pointer hover:bg-white border-l-2 border-transparent" data-type="model" onclick="selectNodeType('model',this)">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded flex items-center justify-center" style="background:oklch(55% 0.22 315)"><i class="fa-solid fa-brain text-white text-xs"></i></div>
+              <div>
+                <div class="text-xs font-medium">模型服务</div>
+                <div class="text-[10px]" style="color:var(--text-tertiary)">AI模型</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 右侧：组件/服务选择 -->
+      <div class="flex-1 flex flex-col" style="border-right:1px solid var(--border-default)">
+        <div class="p-3 border-b" style="border-color:var(--border-default)">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-tertiary)"></i>
+            <input type="text" id="componentSearchInput" placeholder="搜索组件或服务..." class="input w-full pl-9" oninput="searchComponents(this.value)">
+          </div>
+          <div class="flex items-center justify-between mt-2">
+            <div class="text-[10px]" style="color:var(--text-tertiary)" id="relevanceHint">与需求相关性高的组件排在前面</div>
+            <label class="flex items-center gap-1 text-[10px]" style="color:var(--brand);cursor:pointer">
+              <input type="checkbox" id="multiSelectCheckbox" onchange="toggleMultiSelect()" checked>
+              <span>多选模式</span>
+            </label>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3" id="componentSelectList">
+          <!-- 组件列表动态生成 -->
+        </div>
+      </div>
+      <!-- 右侧：已选组件列表 -->
+      <div class="w-64 flex flex-col" style="background:var(--surface-subtle)">
+        <div class="p-3 border-b" style="border-color:var(--border-default)">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-semibold">已选组件</div>
+            <div class="text-[10px] px-2 py-0.5 rounded" style="background:var(--brand);color:var(--text-inverse)" id="selectedCount">0 个</div>
+          </div>
+          <div class="text-[10px] mt-1" style="color:var(--text-tertiary)">点击可移除或配置</div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3" id="selectedComponentList">
+          <div class="text-center py-8" style="color:var(--text-tertiary)">
+            <i class="fa-solid fa-shopping-cart text-2xl mb-2" style="color:var(--border-subtle)"></i>
+            <div class="text-xs">暂无已选组件</div>
+            <div class="text-[10px] mt-1">从左侧选择组件添加</div>
+          </div>
+        </div>
+        <div class="p-3 border-t" style="border-color:var(--border-default);background:var(--surface-base)">
+          <div class="text-[10px] mb-2" style="color:var(--text-tertiary)">暂存的配置将在点击保存后统一添加到工作流</div>
+        </div>
+      </div>
+    </div>
+    <div class="px-5 py-3 border-t flex items-center justify-between" style="border-color:var(--border-default)">
+      <div class="text-xs" style="color:var(--text-tertiary)">
+        <span id="tempSaveHint">已暂存 <strong id="tempSaveCount" style="color:var(--brand);font-weight:600">0</strong> 个组件配置</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-outline btn-sm" onclick="clearTempSave()" id="clearTempBtn" disabled><i class="fa-solid fa-trash mr-1"></i>清空暂存</button>
+        <button class="btn btn-outline btn-sm" onclick="closeWorkflowNodeModal()">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveAllTempSave()" id="saveAllBtn" disabled><i class="fa-solid fa-save mr-1"></i>保存全部配置</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 组件配置子弹窗 -->
+<div id="componentConfigModal" class="fixed inset-0 bg-black bg-opacity-45 hidden items-center justify-center" style="z-index:2100">
+  <div class="bg-white rounded-lg w-[560px] max-h-[80vh] overflow-hidden flex flex-col">
+    <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+      <h3 class="text-sm font-semibold">配置组件参数</h3>
+      <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100" onclick="closeComponentConfigModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-5" id="componentConfigContent">
+      <!-- 动态生成配置内容 -->
+    </div>
+    <div class="px-5 py-3 border-t flex justify-end gap-2" style="border-color:var(--border-default)">
+      <button class="btn btn-outline btn-sm" onclick="closeComponentConfigModal()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmComponentConfig()">暂存配置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 数据项选择器弹窗 -->
+<div id="dataItemSelectorModal" class="fixed inset-0 bg-black bg-opacity-45 hidden items-center justify-center" style="z-index:2200">
+  <div class="bg-white rounded-lg w-[720px] max-h-[85vh] overflow-hidden flex flex-col">
+    <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+      <div>
+        <h3 class="text-sm font-semibold">选择数据项</h3>
+        <div class="text-[10px] mt-1" style="color:var(--text-tertiary)">可选择已有数据项或工作流中的数据服务</div>
+      </div>
+      <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100" onclick="closeDataItemSelector()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex-1 flex overflow-hidden">
+      <!-- 左侧：数据源选择 -->
+      <div class="w-56 border-r flex flex-col" style="border-color:var(--border-default);background:var(--surface-subtle)">
+        <div class="p-3 text-xs font-semibold" style="color:var(--text-secondary)">数据来源</div>
+        <div class="flex-1 overflow-y-auto">
+          <div class="p-3 cursor-pointer hover:bg-white border-l-2 border-transparent" data-source="library" onclick="selectDataSource('library',this)">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded flex items-center justify-center" style="background:var(--brand)"><i class="fa-solid fa-database text-white text-xs"></i></div>
+              <div>
+                <div class="text-xs font-medium">数据项库</div>
+                <div class="text-[10px]" style="color:var(--text-tertiary)">全局数据项</div>
+              </div>
+            </div>
+          </div>
+          <div class="p-3 cursor-pointer hover:bg-white border-l-2 border-transparent" data-source="workflow" onclick="selectDataSource('workflow',this)">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded flex items-center justify-center" style="background:var(--success)"><i class="fa-solid fa-network-wired text-white text-xs"></i></div>
+              <div>
+                <div class="text-xs font-medium">工作流数据</div>
+                <div class="text-[10px]" style="color:var(--text-tertiary)">数据服务</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 右侧：数据项列表 -->
+      <div class="flex-1 flex flex-col">
+        <div class="p-3 border-b" style="border-color:var(--border-default)">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-tertiary)"></i>
+            <input type="text" id="dataItemSearchInput" placeholder="搜索数据项..." class="input w-full pl-9" oninput="searchDataItems(this.value)">
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3" id="dataItemList">
+          <!-- 数据项列表动态生成 -->
+        </div>
+      </div>
+    </div>
+    <div class="px-5 py-3 border-t flex justify-between" style="border-color:var(--border-default)">
+      <div class="text-xs" style="color:var(--text-tertiary)">
+        <span>已选择：<strong id="selectedDataItemCount" style="color:var(--brand)">0</strong> 个</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-outline btn-sm" onclick="closeDataItemSelector()">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="confirmDataItemSelection()" id="confirmDataItemBtn" disabled>确认选择</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 发布申请弹窗 -->
+<div id="publishApplicationModal" class="fixed inset-0 bg-black bg-opacity-45 hidden items-center justify-center" style="z-index:2000">
+  <div class="bg-white rounded-lg w-[720px] max-h-[85vh] overflow-hidden flex flex-col">
+    <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">
+      <h3 class="text-sm font-semibold">发布申请</h3>
+      <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100" onclick="closePublishApplicationModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-5">
+      <div class="publish-info">
+        <div class="flex items-start gap-3">
+          <i class="fa-solid fa-circle-info text-lg" style="color:var(--success)"></i>
+          <div class="flex-1">
+            <div class="text-sm font-semibold mb-1">发布申请信息</div>
+            <div class="text-xs" style="color:var(--text-secondary)">提交发布申请后，将由发布管理模块进行审批和发布流程管理</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <div class="text-xs font-semibold mb-2" style="color:var(--text-secondary)">服务信息</div>
+        <div class="p-3 rounded border" style="background:var(--surface-subtle);border-color:var(--border-default)">
+          <div class="text-sm space-y-1" style="color:var(--text-secondary)">
+            <div>服务名称：<span id="publishServiceName" style="font-weight:600;color:var(--text-primary)"></span></div>
+            <div>版本号：<span id="publishServiceVersion">V1.0</span></div>
+            <div>组件数量：<span id="publishComponentCount">0</span> 个</div>
+            <div>关联需求：<span id="publishDemandInfo" style="color:var(--brand)"></span></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <div class="text-xs font-semibold mb-2" style="color:var(--text-secondary)">申请说明</div>
+        <textarea id="publishDescription" class="input w-full" rows="4" placeholder="请输入发布申请说明..." style="resize:none"></textarea>
+      </div>
+      
+      <div class="mb-4">
+        <div class="text-xs font-semibold mb-2" style="color:var(--text-secondary)">发布环境</div>
+        <label class="flex items-center gap-2 text-sm mb-2 cursor-pointer">
+          <input type="radio" name="publishEnv" value="test"> <span>测试环境</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="radio" name="publishEnv" value="prod" checked> <span>生产环境</span>
+        </label>
+      </div>
+    </div>
+    <div class="px-5 py-3 border-t flex justify-end gap-2" style="border-color:var(--border-default)">
+      <button class="btn btn-outline btn-sm" onclick="closePublishApplicationModal()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="submitPublishApplication()">提交申请</button>
+    </div>
+  </div>
+</div>
+
+<script src="_assembly/assembly-data-model.js"></script>
+<script src="_assembly/assembly-utils.js"></script>
+<script src="_assembly/assembly-global-state.js"></script>
+<script src="_assembly/assembly-auto-save.js"></script>
+<script src="_assembly/assembly-workflow-nodes.js"></script>
+<script src="_assembly/assembly-canvas-nodes.js"></script>
+<script src="_assembly/assembly-canvas-drag.js"></script>
+<script src="_assembly/assembly-connections.js"></script>
+<script src="_assembly/assembly-data-items.js"></script>
+<script src="_assembly/assembly-property-panels.js"></script>
+<script src="_assembly/assembly-publish.js"></script>
+<script src="_assembly/assembly-panel-layout.js"></script>
+<script src="_assembly/assembly-canvas-zoom-pan.js"></script>
+<script src="_assembly/assembly-init.js"></script>
+<script src="_assembly/assembly-routing-txn.js"></script>
+<script src="_assembly/assembly-conflict-detection.js"></script>
+
+<!-- Toast 提示组件 -->
+<div id="toast" class="toast" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;padding:12px 24px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);display:none;align-items:center;gap:8px;min-width:200px;font-size:13px;transition:all 0.3s;opacity:0">
+  <i class="fa-solid fa-check-circle text-lg"></i>
+  <span id="toastText"></span>
+</div>
+<style>
+.toast.show{display:flex!important;opacity:1!important}
+.toast-success{background:var(--success-subtle);border:1px solid var(--success);color:var(--success)}
+.toast-info{background:var(--brand-subtle);border:1px solid var(--brand);color:var(--brand)}
+.toast-warning{background:var(--warning-subtle);border:1px solid var(--warning);color:var(--warning)}
+.toast-error{background:var(--danger-subtle);border:1px solid var(--danger);color:var(--danger)}
+</style>
+<!-- 全局悬浮 tooltip（用于收缩态图标栏） -->
+<div id="globalTooltip" class="collapsed-icon-tooltip arrow-left">
+  <div class="tip-arrow"></div>
+  <div class="tip-name" id="globalTooltipName"></div>
+  <div class="tip-category" id="globalTooltipCategory"></div>
+</div>
+<script>
+Scaffold.init('assembly');
+// 从需求上下文读取当前需求
+setTimeout(function(){
+  var d = Scaffold.getCurrentDemand();
+  if(d && typeof selectDemand === 'function' && typeof DEMANDS !== 'undefined'){
+    // 检查 DEMANDS 中是否有匹配的需求
+    var matched = DEMANDS.find(function(x){return x.id === d.id;});
+    if(matched) selectDemand(matched.id, matched.title);
+  }
+  Scaffold.renderDemandBar();
+  Scaffold.markStepInProgress('assembly');
+
+  // 从组件编排页跳转过来时，自动导入测试数据
+  var nav = Scaffold.getNavParams();
+  if(nav && nav.componentIds && typeof importTestFlowData === 'function'){
+    setTimeout(function(){ importTestFlowData(); }, 300);
+  }
+}, 500);
+</script>
+</body>
+</html>

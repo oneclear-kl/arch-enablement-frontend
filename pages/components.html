@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+<script src="../_shared/models/enums.js"></script>
+<script src="../_shared/models/utils.js"></script>
+<script src="../_shared/scaffold.js"></script>
+<style>
+/* ===== Component Orchestration Styles ===== */
+*{box-sizing:border-box}
+:root{--panel-radius:var(--radius-md);--basket-header-h:44px}
+
+/* --- Layout --- */
+.orchestra-layout{display:flex;gap:16px;align-items:flex-start}
+.panel-browser{flex:0 0 60%;min-width:0}
+.panel-basket{flex:0 0 40%;min-width:0;position:sticky;top:0}
+@media(max-width:1200px){.orchestra-layout{flex-direction:column}.panel-browser,.panel-basket{flex:1 1 auto}}
+
+/* --- Component Card (selectable) --- */
+.comp-card{position:relative;cursor:pointer;transition:all 0.2s var(--ease-out);user-select:none}
+.comp-card:hover{border-color:var(--brand);box-shadow:var(--shadow-md)}
+.comp-card.selected{border-color:var(--brand);background:var(--brand-subtle);box-shadow:0 0 0 1.5px var(--brand),var(--shadow-sm)}
+.comp-card .sel-indicator{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;border:2px solid var(--border-strong);display:flex;align-items:center;justify-content:center;transition:all 0.2s;background:var(--surface-raised);z-index:2;font-size:9px;color:transparent}
+.comp-card.selected .sel-indicator{border-color:var(--brand);background:var(--brand);color:var(--text-inverse)}
+.comp-card:hover .sel-indicator{border-color:var(--brand)}
+
+.comp-card .rec-badge{position:absolute;top:10px;left:10px;font-size:9px;padding:1px 7px;border-radius:var(--radius-full);background:linear-gradient(135deg,var(--amber),oklch(50% 0.15 55));color:var(--text-inverse);font-weight:600;letter-spacing:0.02em;z-index:2;box-shadow:0 2px 6px rgba(200,120,0,0.25)}
+.comp-card .metric-row{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text-tertiary);margin-top:6px}
+.comp-card .metric-row span{display:flex;align-items:center;gap:3px}
+.comp-card .metric-row .good{color:var(--success)}
+.comp-card .metric-row .mid{color:var(--warning)}
+.comp-card .metric-row .poor{color:var(--danger)}
+
+.comp-card .dep-indicators{margin-top:5px;display:flex;gap:4px;flex-wrap:wrap}
+.comp-card .dep-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+/* --- Filter chips --- */
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.filter-chip{padding:3px 12px;font-size:11px;border-radius:var(--radius-full);cursor:pointer;border:1px solid var(--border-default);background:var(--surface-raised);color:var(--text-secondary);transition:all 0.15s}
+.filter-chip:hover{border-color:var(--brand);color:var(--brand)}
+.filter-chip.active{background:var(--brand);color:var(--text-inverse);border-color:var(--brand)}
+
+/* --- Basket Panel --- */
+.basket-panel{background:var(--surface-raised);border-radius:var(--panel-radius);border:1px solid var(--border-default);overflow:hidden;box-shadow:var(--shadow-md)}
+.basket-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-default);background:var(--surface-subtle);height:var(--basket-header-h)}
+.basket-body{padding:12px;overflow-y:auto;max-height:calc(100vh - 320px)}
+.basket-empty{text-align:center;padding:32px 16px;color:var(--text-tertiary)}
+.basket-empty i{font-size:2rem;color:var(--border-subtle);margin-bottom:8px}
+
+/* --- Basket Item --- */
+.basket-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:6px;border:1px solid var(--border-subtle);transition:all 0.15s}
+.basket-item:hover{border-color:var(--brand);background:var(--brand-wash)}
+.basket-item .bi-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:var(--text-inverse)}
+.basket-item .bi-info{flex:1;min-width:0}
+.basket-item .bi-name{font-size:12px;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.basket-item .bi-meta{font-size:10px;color:var(--text-tertiary)}
+.basket-item .bi-remove{width:22px;height:22px;border-radius:50%;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);transition:all 0.15s;flex-shrink:0;font-size:10px}
+.basket-item .bi-remove:hover{background:var(--danger-subtle);color:var(--danger)}
+.basket-item .bi-dep{direction:rtl}
+.basket-item .bi-dep .dep-icon{font-size:9px;color:var(--text-tertiary);cursor:help;margin-left:2px}
+
+/* --- Metrics Summary --- */
+.metrics-summary{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.metric-card{background:var(--surface-subtle);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.metric-card .mc-value{font-size:18px;font-weight:700;font-family:var(--font-display);color:var(--text-primary);line-height:1.1}
+.metric-card .mc-label{font-size:10px;color:var(--text-tertiary);margin-top:2px}
+
+/* --- Dependency SVG --- */
+.dep-graph-wrap{background:var(--surface-subtle);border-radius:var(--radius-sm);border:1px solid var(--border-subtle);padding:8px;margin-bottom:12px;position:relative}
+.dep-graph-wrap svg{display:block;width:100%;height:auto}
+.dep-graph-title{font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.dep-node{cursor:pointer;transition:opacity 0.15s}
+.dep-node:hover{opacity:0.8}
+.dep-link{stroke:var(--border-strong);stroke-width:1.5;fill:none;stroke-dasharray:3,3;transition:stroke 0.2s}
+.dep-link.active{stroke:var(--brand);stroke-width:2;stroke-dasharray:none}
+.dep-link.has-dep{stroke:oklch(55% 0.12 240);stroke-dasharray:none}
+.dep-link.has-dep.active{stroke:var(--brand);stroke-width:2.5}
+
+/* --- Template Manager --- */
+.template-list{max-height:200px;overflow-y:auto}
+.template-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:4px;border:1px solid var(--border-subtle);transition:all 0.15s}
+.template-item:hover{border-color:var(--brand)}
+.template-item .ti-name{font-size:12px;font-weight:500;color:var(--text-primary)}
+.template-item .ti-meta{font-size:10px;color:var(--text-tertiary)}
+.template-item .ti-actions{display:flex;gap:4px}
+.template-item .ti-actions button{width:24px;height:24px;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all 0.15s}
+.template-item .ti-load{background:var(--brand-subtle);color:var(--brand)}
+.template-item .ti-load:hover{background:var(--brand);color:var(--text-inverse)}
+.template-item .ti-del{background:var(--danger-subtle);color:var(--danger)}
+.template-item .ti-del:hover{background:var(--danger);color:var(--text-inverse)}
+
+/* --- Section Headers inside basket --- */
+.basket-section-title{font-size:11px;font-weight:600;color:var(--text-secondary);margin:14px 0 8px;display:flex;align-items:center;gap:6px}
+.basket-section-title:first-child{margin-top:0}
+
+/* --- Basket footer --- */
+.basket-footer{padding:10px 14px;border-top:1px solid var(--border-default);background:var(--surface-subtle);display:flex;flex-direction:column;gap:6px}
+.basket-actions{display:flex;gap:6px}
+.basket-actions .btn{flex:1;justify-content:center;font-size:12px}
+.basket-footer .template-bar{display:flex;gap:6px;align-items:center}
+.basket-footer .template-bar input{flex:1;height:28px;font-size:11px}
+.basket-footer .template-bar button{height:28px;font-size:11px;padding:0 10px}
+
+/* --- Toast --- */
+.orchestra-toast{position:fixed;top:64px;right:20px;z-index:9999;background:var(--surface-raised);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 16px;box-shadow:var(--shadow-lg);display:none;align-items:center;gap:8px;font-size:12px;animation:slideInRight 0.25s var(--ease-out)}
+.orchestra-toast.show{display:flex}
+@keyframes slideInRight{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.orchestra-toast i{font-size:14px}
+.orchestra-toast.success i{color:var(--success)}
+.orchestra-toast.info i{color:var(--brand)}
+.orchestra-toast.warning i{color:var(--warning)}
+
+/* --- Transition helpers --- */
+.fade-in{animation:fadeIn 0.3s var(--ease-out)}
+
+/* --- Modal overrides --- */
+.modal-sm .modal-box{width:420px}
+.modal-sm .modal-box.wide{width:520px}
+</style>
+<title>组件编排 — 业务中台装配环境</title>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1">
+    <div class="flex items-center gap-2 mr-6">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div>
+      <span class="text-white font-semibold text-base">业务中台装配环境</span>
+    </div>
+    <nav class="flex items-center gap-0.5">
+      <a href="../index.html" class="nav-item"><i class="fa-solid fa-home"></i><span>首页</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm">
+    <div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div>
+    <div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div>
+    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div>
+    <span class="text-xs">张架构</span>
+  </div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+<main class="flex-1 overflow-y-auto">
+  <div id="breadcrumb"></div>
+  <!-- ====== Top Nav Bar ====== -->
+  <div class="flex items-center justify-between px-4 py-1.5 border-b" style="border-color:var(--border-subtle);background:var(--surface-raised)">
+    <a href="workspace.html" class="text-xs" style="color:var(--brand)"><i class="fa-solid fa-arrow-left"></i> 返回工作台</a>
+    <div class="flex items-center gap-2 text-xs">
+      <span style="color:var(--text-tertiary)">组件编排（第一步）</span>
+      <span style="color:var(--border-default)">|</span>
+      <a href="assembly.html" style="color:var(--brand);font-weight:500">下一步：协同可视化设计 →</a>
+    </div>
+  </div>
+
+  <!-- ====== Page Hero ====== -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Component Orchestration</div>
+      <h2>组件编排工作台</h2>
+      <div class="subtitle">浏览业务域组件，多选组合，查看依赖关系与性能指标，一键保存模板或跳转装配</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="loadFullScenario()" style="gap:4px"><i class="fa-solid fa-flask"></i>载入全链路场景</button>
+    </div>
+  </div>
+
+  <!-- ====== Page Content ====== -->
+  <div class="page-section anim-fade-up">
+
+    <!-- 当前需求上下文 -->
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-xs font-medium" style="color:var(--text-secondary)">当前需求：</span>
+      <div id="demandBar"></div>
+      <button class="btn btn-text btn-xs" onclick="showDemandSelector()" style="font-size:10px;color:var(--brand)"><i class="fa-solid fa-pen"></i> 选择需求</button>
+    </div>
+
+    <!-- Quick Stats (全站一致的 stat-card 风格) -->
+    <div class="grid grid-cols-4 gap-4 mb-4">
+      <div class="stat-card active" data-filter="all" onclick="setStatFilter('all',this)" style="cursor:pointer"><div class="flex items-center justify-between"><div><div class="stat-value" id="statTotal">0</div><div class="stat-label">全部组件</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-puzzle-piece"></i></div></div></div>
+      <div class="stat-card" data-filter="recommended" onclick="setStatFilter('recommended',this)" style="cursor:pointer"><div class="flex items-center justify-between"><div><div class="stat-value" id="statRecommended">0</div><div class="stat-label">推荐组合</div></div><div class="stat-icon-wrap amber"><i class="fa-solid fa-star"></i></div></div></div>
+      <div class="stat-card" data-filter="inBasket" onclick="setStatFilter('inBasket',this)" style="cursor:pointer"><div class="flex items-center justify-between"><div><div class="stat-value" id="statInBasket">0</div><div class="stat-label">已选篮子</div></div><div class="stat-icon-wrap blue"><i class="fa-solid fa-basket-shopping"></i></div></div></div>
+      <div class="stat-card" data-filter="critical" onclick="setStatFilter('critical',this)" style="cursor:pointer"><div class="flex items-center justify-between"><div><div class="stat-value" id="statCritical">0</div><div class="stat-label">高依赖组件</div></div><div class="stat-icon-wrap green"><i class="fa-solid fa-link"></i></div></div></div>
+    </div>
+
+    <!-- Main Layout: Left Browser + Right Basket -->
+    <div class="orchestra-layout">
+
+      <!-- ====== LEFT PANEL: Component Browser ====== -->
+      <div class="panel-browser">
+
+        <!-- Filter Bar -->
+        <div class="card mb-3">
+          <div class="p-3">
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-2"><span class="text-xs" style="color:var(--text-secondary)">业务域</span><select class="filter-select" id="filterDomain" onchange="applyFilters()"><option value="">全部业务域</option></select></div>
+              <div class="flex items-center gap-2"><span class="text-xs" style="color:var(--text-secondary)">类型</span><select class="filter-select" id="filterType" onchange="applyFilters()"><option value="">全部类型</option></select></div>
+              <div class="flex items-center gap-2"><span class="text-xs" style="color:var(--text-secondary)">状态</span><select class="filter-select" id="filterStatus" onchange="applyFilters()"><option value="">全部状态</option><option value="published">已发布</option><option value="developing">开发中</option><option value="draft">草稿</option></select></div>
+              <div class="flex items-center gap-2 flex-1 min-w-0"><i class="fa-solid fa-magnifying-glass text-xs flex-shrink-0" style="color:var(--border-default)"></i><input type="text" id="searchInput" placeholder="搜索组件名称、描述..." class="input flex-1 min-w-0" oninput="applyFilters()"><button class="btn btn-outline btn-sm flex-shrink-0" onclick="clearFilters()" title="清除筛选"><i class="fa-solid fa-eraser"></i></button></div>
+              <span class="text-xs flex-shrink-0" style="color:var(--text-tertiary)" id="resultCount">0 个组件</span>
+            </div>
+            <!-- Domain Filter Chips -->
+            <div class="filter-chips" id="filterChips"></div>
+          </div>
+        </div>
+
+        <!-- Component Grid -->
+        <div class="grid grid-cols-2 gap-3" id="componentGrid">
+          <!-- Rendered by JS -->
+        </div>
+
+      </div>
+
+      <!-- ====== RIGHT PANEL: Basket & Actions ====== -->
+      <div class="panel-basket">
+        <div class="basket-panel">
+          <!-- Header -->
+          <div class="basket-header">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-basket-shopping text-sm" style="color:var(--brand)"></i>
+              <span class="text-sm font-semibold" style="color:var(--text-primary)" id="basketTitle">组合篮子</span>
+              <span class="badge" style="background:var(--brand-subtle);color:var(--brand)" id="basketCount">0</span>
+            </div>
+            <button class="btn btn-text" onclick="clearBasket()" id="clearBasketBtn" style="display:none"><i class="fa-solid fa-trash-can mr-1"></i>清空</button>
+          </div>
+          <!-- Tab bar -->
+          <div class="flex border-b text-xs" style="border-color:var(--border-default);background:var(--surface-subtle)">
+            <div class="flex-1 text-center py-2 cursor-pointer font-medium" style="color:var(--brand);border-bottom:2px solid var(--brand);background:var(--surface-base)" id="tabBasket" onclick="switchBasketTab('basket')">组合篮子</div>
+            <div class="flex-1 text-center py-2 cursor-pointer" style="color:var(--text-tertiary);border-bottom:2px solid transparent" id="tabTemplates" onclick="switchBasketTab('templates')">模板管理</div>
+          </div>
+          <!-- Tab Content: Basket -->
+          <div id="basketTabContent" class="flex-1 flex flex-col overflow-hidden" style="display:flex">
+            <div class="basket-body" id="basketBody">
+              <div class="basket-empty">
+                <i class="fa-solid fa-basket-shopping"></i>
+                <div class="text-sm">组合篮子为空</div>
+                <div class="text-xs mt-1">从左侧点击组件添加到篮子</div>
+              </div>
+            </div>
+            <!-- Basket Footer -->
+            <div class="basket-footer" id="basketFooter" style="display:none">
+              <div class="metrics-summary" id="metricsSummary"></div>
+              <div class="dep-graph-wrap" id="depGraphWrap">
+                <div class="dep-graph-title"><i class="fa-solid fa-project-diagram" style="color:var(--brand)"></i>依赖关系图</div>
+                <div id="depGraphContainer"><div class="text-center py-6 text-xs" style="color:var(--text-tertiary)">选择至少 2 个组件查看依赖关系</div></div>
+              </div>
+              <div class="basket-actions">
+                <button class="btn btn-primary" onclick="goToAssembly()"><i class="fa-solid fa-pen-ruler mr-1"></i>去装配</button>
+                <button class="btn btn-outline" onclick="toggleSelectMode()"><i class="fa-solid fa-hand-pointer mr-1"></i><span id="modeLabel">多选模式</span></button>
+              </div>
+            </div>
+          </div>
+          <!-- Tab Content: Templates -->
+          <div id="templatesTabContent" class="flex-1 flex-col overflow-hidden" style="display:none">
+            <div class="flex-1 overflow-y-auto p-3" id="templatePanelBody">
+              <div class="basket-section-title"><i class="fa-solid fa-floppy-disk" style="color:var(--amber)"></i>保存当前组合</div>
+              <div class="flex gap-2 mb-3">
+                <input type="text" class="input flex-1" id="templateNameInput2" placeholder="输入模板名称..." onkeydown="if(event.key==='Enter')saveTemplateFromInput()">
+                <button class="btn btn-primary btn-sm" onclick="saveTemplateFromInput()"><i class="fa-solid fa-save"></i>保存</button>
+              </div>
+              <div class="basket-section-title"><i class="fa-solid fa-folder-open" style="color:var(--brand)"></i>已保存模板</div>
+              <div id="templateFullList" class="template-list" style="max-height:none">
+                <div class="text-center py-6 text-xs" style="color:var(--text-tertiary)">暂无已保存的模板</div>
+              </div>
+              <!-- 模板内容预览 -->
+              <div id="templateDetail" style="display:none;margin-top:8px;border-top:1px solid var(--border-subtle);padding-top:8px">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-xs font-semibold" style="color:var(--text-primary)" id="templateDetailTitle"></div>
+                  <button class="btn btn-text btn-xs" onclick="closeTemplateDetail()" style="font-size:10px"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="templateDetailBody" class="text-xs" style="color:var(--text-secondary)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /orchestra-layout -->
+  </div><!-- /page-section -->
+</main>
+</div>
+
+<!-- ====== Template Manager Modal ====== -->
+<div id="templateModal" class="modal-overlay">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-folder-open mr-2" style="color:var(--amber)"></i>加载模板</h3>
+      <button class="modal-close" onclick="closeTemplateModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="templateList" class="template-list">
+        <div class="text-center py-6 text-xs" style="color:var(--text-tertiary)">暂无已保存的模板</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeTemplateModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Component Detail Modal ====== -->
+<div id="componentDetailModal" class="fixed inset-0 bg-black bg-opacity-45 hidden items-center justify-center" style="z-index:2000">
+  <div class="bg-white rounded-lg w-[720px] max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+    <div class="px-5 py-3 border-b flex items-center justify-between flex-shrink-0" style="border-color:var(--border-default)">
+      <div class="flex items-center gap-3" id="detailHeader">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center" id="detailIconWrap"><i class="fa-solid" id="detailIcon"></i></div>
+        <div>
+          <h3 class="text-base font-semibold" style="color:var(--text-primary)" id="detailName"></h3>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span class="badge text-[10px]" id="detailTypeBadge"></span>
+            <span class="badge text-[10px]" id="detailStatusBadge"></span>
+            <span class="text-xs" style="color:var(--text-tertiary)" id="detailCategory"></span>
+          </div>
+        </div>
+      </div>
+      <button onclick="closeDetail()" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition cursor-pointer border-none text-lg" style="color:var(--text-tertiary)"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-5" id="detailContent">
+      <!-- Dynamic content from showDetail() -->
+    </div>
+    <div class="px-5 py-3 border-t flex justify-end gap-2 flex-shrink-0" style="border-color:var(--border-default)">
+      <button class="btn btn-outline" onclick="closeDetail()">关闭</button>
+      <button class="btn btn-primary" id="detailBasketBtn" onclick="">添加到篮子</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Toast ====== -->
+<div class="orchestra-toast" id="orchestraToast"></div>
+
+<script>
+// ====================================================================
+// DATA: Oil & Gas Business Domain Components (业务组件 + 图件)
+// ====================================================================
+var ALL_DOMAINS = ['油气新能源','炼化新材料','销售','天然气销售','海外油气','国际贸易','油田技术服务','工程建设','装备制造','运输物流'];
+var ALL_TYPES = ['业务组件','图件'];
+
+var componentDataSource = [
+  // ---- 油气新能源（5个：现场采集类）----
+  {id:'C001',name:'油井数据采集',category:'油气新能源',type:'业务组件',icon:'fa-oil-well',color:'var(--brand)',
+    description:'实时采集油井生产数据，支持抽油机载荷、冲程冲次等多传感器协议',responseTime:45,throughput:1200,status:'published',dependencies:[],
+    relevanceScore:95,config:{'采集协议':'Modbus TCP','采集频率':'1 秒','数据源':'RTU 远传','超时阈值(ms)':2000}},
+  {id:'C002',name:'压力传感器读取',category:'油气新能源',type:'业务组件',icon:'fa-gauge',color:'var(--brand)',
+    description:'读取井口油压、套压、管线压力传感器实时数据',responseTime:30,throughput:2000,status:'published',dependencies:['C001'],
+    relevanceScore:90,config:{'采集协议':'HART','采集频率':'500 毫秒','数据源':'井口压力变送器','超时阈值(ms)':1000}},
+  {id:'C017',name:'振动传感器采集',category:'油气新能源',type:'业务组件',icon:'fa-wave-square',color:'var(--brand)',
+    description:'采集抽油机轴承振动加速度、速度和位移',responseTime:35,throughput:1800,status:'published',dependencies:[],
+    relevanceScore:86,config:{'采集协议':'IEPE','采集频率':'2 毫秒','数据源':'加速度传感器','超时阈值(ms)':500}},
+  {id:'C018',name:'温度传感器采集',category:'油气新能源',type:'业务组件',icon:'fa-thermometer-half',color:'var(--brand)',
+    description:'采集井口温度、电机轴承温度、管线温度',responseTime:28,throughput:2200,status:'published',dependencies:[],
+    relevanceScore:84,config:{'采集协议':'PT100 RTD','采集频率':'1 秒','数据源':'热电偶','超时阈值(ms)':3000}},
+  {id:'C019',name:'电流电压采集',category:'油气新能源',type:'业务组件',icon:'fa-bolt',color:'var(--brand)',
+    description:'采集抽油机电机三相电流、电压、有功功率',responseTime:32,throughput:2000,status:'published',dependencies:[],
+    relevanceScore:83,config:{'采集协议':'Modbus RTU','采集频率':'200 毫秒','数据源':'电力仪表','超时阈值(ms)':1000}},
+  {id:'C003',name:'抽油机工艺流程图',category:'油气新能源',type:'图件',icon:'fa-image',color:'var(--info)',
+    description:'展示抽油机整机工艺流程与设备连接关系',responseTime:120,throughput:300,status:'published',dependencies:[],
+    relevanceScore:70,config:{'地图类型':'静态矢量图','数据源':'设计图纸','更新频率':'按需更新'}},
+
+  // ---- 炼化新材料（2个）----
+  {id:'C009',name:'设备布置平面图',category:'炼化新材料',type:'图件',icon:'fa-building',color:'var(--info)',
+    description:'炼化装置设备平面布置与设备信息查询',responseTime:90,throughput:200,status:'published',dependencies:[],
+    relevanceScore:65,config:{'地图类型':'CAD 平面图','数据源':'设备台账','更新频率':'每日更新'}},
+  {id:'C026',name:'炼化物料平衡图',category:'炼化新材料',type:'图件',icon:'fa-circle-nodes',color:'var(--info)',
+    description:'展示炼化装置间物料流向与平衡关系',responseTime:110,throughput:180,status:'published',dependencies:[],
+    relevanceScore:62,config:{'地图类型':'物料流向图','数据源':'MES','更新频率':'每小时'}},
+
+  // ---- 销售（2个）----
+  {id:'C027',name:'油品销量分析看板',category:'销售',type:'业务组件',icon:'fa-chart-simple',color:'var(--brand)',
+    description:'实时展示各品号油品销量、价格、库存数据',responseTime:65,throughput:900,status:'published',dependencies:[],
+    relevanceScore:78,config:{'采集协议':'REST API','采集频率':'5 分钟','数据源':'销售系统','超时阈值(ms)':3000}},
+  {id:'C028',name:'销售区域分布图',category:'销售',type:'图件',icon:'fa-map-location-dot',color:'var(--info)',
+    description:'展示各区域销售网点和销量分布',responseTime:95,throughput:250,status:'published',dependencies:[],
+    relevanceScore:66,config:{'地图类型':'GIS 散点图','数据源':'CRM','更新频率':'每天'}},
+
+  // ---- 天然气销售（2个）----
+  {id:'C029',name:'天然气计量管理',category:'天然气销售',type:'业务组件',icon:'fa-meter',color:'var(--brand)',
+    description:'采集天然气用户计量表数据，支持贸易结算',responseTime:40,throughput:1500,status:'published',dependencies:[],
+    relevanceScore:82,config:{'采集协议':'Modbus RTU','采集频率':'1 分钟','数据源':'智能气表','超时阈值(ms)':3000}},
+  {id:'C030',name:'天然气管网拓扑图',category:'天然气销售',type:'图件',icon:'fa-sitemap',color:'var(--info)',
+    description:'展示天然气输送管网结构与关键节点',responseTime:85,throughput:220,status:'published',dependencies:[],
+    relevanceScore:68,config:{'地图类型':'GIS 管线图','数据源':'SCADA 系统','更新频率':'实时'}},
+
+  // ---- 海外油气（2个）----
+  {id:'C031',name:'海外产量数据看板',category:'海外油气',type:'业务组件',icon:'fa-globe',color:'var(--brand)',
+    description:'汇集海外各区块产量数据，统一监控',responseTime:75,throughput:700,status:'published',dependencies:[],
+    relevanceScore:76,config:{'采集协议':'HTTPS','采集频率':'10 分钟','数据源':'海外SCADA','超时阈值(ms)':5000}},
+  {id:'C032',name:'海外项目分布图',category:'海外油气',type:'图件',icon:'fa-earth-asia',color:'var(--info)',
+    description:'展示海外油气区块分布与项目状态',responseTime:100,throughput:200,status:'published',dependencies:[],
+    relevanceScore:64,config:{'地图类型':'世界地图','数据源':'项目管理库','更新频率':'每周'}},
+
+  // ---- 国际贸易（2个）----
+  {id:'C033',name:'贸易合同跟踪',category:'国际贸易',type:'业务组件',icon:'fa-file-signature',color:'var(--brand)',
+    description:'跟踪国际贸易合同执行状态与里程碑',responseTime:55,throughput:500,status:'published',dependencies:[],
+    relevanceScore:71,config:{'采集协议':'REST API','采集频率':'按需','数据源':'合同系统','超时阈值(ms)':10000}},
+  {id:'C034',name:'贸易流程图',category:'国际贸易',type:'图件',icon:'fa-route',color:'var(--info)',
+    description:'展示国际贸易流向与关键节点示意图',responseTime:80,throughput:150,status:'published',dependencies:[],
+    relevanceScore:60,config:{'地图类型':'流程图','数据源':'业务资料','更新频率':'按需更新'}},
+
+  // ---- 油田技术服务（2个）----
+  {id:'C004',name:'生产数据实时看板',category:'油田技术服务',type:'业务组件',icon:'fa-chart-simple',color:'var(--brand)',
+    description:'工作站生产数据聚合与可视化监控看板',responseTime:80,throughput:800,status:'published',dependencies:['C001','C002'],
+    relevanceScore:92,config:{'采集协议':'WebSocket','采集频率':'实时','数据源':'C001/C002','刷新间隔(秒)':5}},
+  {id:'C020',name:'维保工单管理',category:'油田技术服务',type:'业务组件',icon:'fa-clipboard-check',color:'var(--brand)',
+    description:'工单创建、派发、处置、验收全流程管理',responseTime:70,throughput:600,status:'published',dependencies:[],
+    relevanceScore:81,config:{'采集协议':'REST API','采集频率':'按需','数据源':'工单系统','超时阈值(ms)':5000}},
+
+  // ---- 工程建设（2个）----
+  {id:'C024',name:'工程进度跟踪',category:'工程建设',type:'业务组件',icon:'fa-calendar-check',color:'var(--brand)',
+    description:'工程项目建设进度跟踪与里程碑管理',responseTime:55,throughput:900,status:'published',dependencies:[],
+    relevanceScore:74,config:{'采集协议':'REST API','采集频率':'每小时','数据源':'项目管理平台','超时阈值(ms)':10000}},
+  {id:'C035',name:'施工进度横道图',category:'工程建设',type:'图件',icon:'fa-gantt',color:'var(--info)',
+    description:'展示施工项目进度甘特图与关键路径',responseTime:90,throughput:180,status:'published',dependencies:[],
+    relevanceScore:67,config:{'地图类型':'甘特图','数据源':'施工计划','更新频率':'每日'}},
+
+  // ---- 装备制造（2个）----
+  {id:'C015',name:'管网压力分布图',category:'装备制造',type:'图件',icon:'fa-map',color:'var(--info)',
+    description:'管网压力分布等值线与监测点位标注',responseTime:110,throughput:250,status:'published',dependencies:[],
+    relevanceScore:71,config:{'地图类型':'GIS 热力图','数据源':'压力传感器','更新频率':'1 分钟'}},
+  {id:'C036',name:'设备BOM结构图',category:'装备制造',type:'图件',icon:'fa-diagram-project',color:'var(--info)',
+    description:'展示设备物料清单BOM层级结构与明细',responseTime:75,throughput:300,status:'published',dependencies:[],
+    relevanceScore:69,config:{'地图类型':'结构树','数据源':'PDM 系统','更新频率':'按需'}},
+
+  // ---- 运输物流（2个）----
+  {id:'C037',name:'物流调度管理',category:'运输物流',type:'业务组件',icon:'fa-truck',color:'var(--brand)',
+    description:'成品油运输调度、路线规划与配送监控',responseTime:60,throughput:750,status:'published',dependencies:[],
+    relevanceScore:79,config:{'采集协议':'GPS+API','采集频率':'30 秒','数据源':'车载终端','超时阈值(ms)':5000}},
+  {id:'C038',name:'运输路线图',category:'运输物流',type:'图件',icon:'fa-road',color:'var(--info)',
+    description:'展示油品运输路线及沿途配送节点',responseTime:70,throughput:200,status:'published',dependencies:[],
+    relevanceScore:63,config:{'地图类型':'GIS 路线图','数据源':'调度系统','更新频率':'实时'}}
+];
+
+// ====================================================================
+// STATE
+// ====================================================================
+var selectedIds = [];        // IDs of components in basket
+var multiSelectMode = true;   // clicking toggles select
+var statFilter = 'all';       // quick stat filter
+var currentTemplateName = '';
+
+// ====================================================================
+// DOM REFS
+// ====================================================================
+var grid = document.getElementById('componentGrid');
+var basketBody = document.getElementById('basketBody');
+var basketFooter = document.getElementById('basketFooter');
+var basketCount = document.getElementById('basketCount');
+var depContainer = document.getElementById('depGraphContainer');
+var metricsSummary = document.getElementById('metricsSummary');
+var toast = document.getElementById('orchestraToast');
+
+// ====================================================================
+// INIT
+// ====================================================================
+function init() {
+  populateFilterOptions();
+  updateStats();
+  applyFilters();
+  renderBasket();
+  renderTemplateFullList();
+  // 需求上下文初始化
+  var sceneDemandId = localStorage.getItem('scene_demand_id');
+  var sceneDemandTitle = localStorage.getItem('scene_demand_title');
+  if (sceneDemandId && sceneDemandTitle) {
+    Scaffold.setCurrentDemand(sceneDemandId, sceneDemandTitle);
+  }
+  Scaffold.renderDemandBar();
+  Scaffold.markStepInProgress('components');
+}
+
+// ===== 右侧面板 Tab 切换 =====
+function switchBasketTab(tab){
+  var basketTab=document.getElementById('basketTabContent');
+  var tplTab=document.getElementById('templatesTabContent');
+  var tabBasket=document.getElementById('tabBasket');
+  var tabTpl=document.getElementById('tabTemplates');
+  if(tab==='basket'){
+    basketTab.style.display='flex'; tplTab.style.display='none';
+    tabBasket.style.color='var(--brand)'; tabBasket.style.borderBottomColor='var(--brand)'; tabBasket.style.borderBottomWidth='2px'; tabBasket.style.background='var(--surface-base)'; tabBasket.style.fontWeight='600';
+    tabTpl.style.color='var(--text-tertiary)'; tabTpl.style.borderBottomColor='transparent'; tabTpl.style.borderBottomWidth='2px'; tabTpl.style.background='transparent'; tabTpl.style.fontWeight='400';
+  }else{
+    basketTab.style.display='none'; tplTab.style.display='flex';
+    tabTpl.style.color='var(--brand)'; tabTpl.style.borderBottomColor='var(--brand)'; tabTpl.style.borderBottomWidth='2px'; tabTpl.style.background='var(--surface-base)'; tabTpl.style.fontWeight='600';
+    tabBasket.style.color='var(--text-tertiary)'; tabBasket.style.borderBottomColor='transparent'; tabBasket.style.borderBottomWidth='2px'; tabBasket.style.background='transparent'; tabBasket.style.fontWeight='400';
+    renderTemplateFullList();
+  }
+}
+
+// ====================================================================
+// FILTER HELPERS
+// ====================================================================
+function populateFilterOptions() {
+  var domainSelect = document.getElementById('filterDomain');
+  var typeSelect = document.getElementById('filterType');
+  var chips = document.getElementById('filterChips');
+
+  // 固定 10 个业务域
+  ALL_DOMAINS.forEach(function(d) {
+    var opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = d;
+    domainSelect.appendChild(opt);
+  });
+
+  // 仅业务组件 + 图件
+  ALL_TYPES.forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    typeSelect.appendChild(opt);
+  });
+
+  // Domain filter chips
+  chips.innerHTML = '';
+  ALL_DOMAINS.forEach(function(d) {
+    var chip = document.createElement('span');
+    chip.className = 'filter-chip';
+    chip.textContent = d;
+    chip.dataset.domain = d;
+    chip.onclick = function() {
+      this.classList.toggle('active');
+      applyFilters();
+    };
+    chips.appendChild(chip);
+  });
+}
+
+function getActiveDomainChips() {
+  var chips = document.querySelectorAll('#filterChips .filter-chip.active');
+  return Array.from(chips).map(function(c) { return c.dataset.domain; });
+}
+
+function clearFilters() {
+  document.getElementById('filterDomain').value = '';
+  document.getElementById('filterType').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('#filterChips .filter-chip').forEach(function(c) { c.classList.remove('active'); });
+  setStatFilter('all', document.querySelector('.stat-card[data-filter="all"]'));
+  applyFilters();
+}
+
+function applyFilters() {
+  var domainVal = document.getElementById('filterDomain').value;
+  var typeVal = document.getElementById('filterType').value;
+  var statusVal = document.getElementById('filterStatus').value;
+  var searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+  var activeChips = getActiveDomainChips();
+
+  var filtered = componentDataSource.filter(function(c) {
+    if (domainVal && c.category !== domainVal) return false;
+    if (activeChips.length > 0 && activeChips.indexOf(c.category) === -1) return false;
+    if (typeVal && c.type !== typeVal) return false;
+    if (statusVal && c.status !== statusVal) return false;
+    if (searchText) {
+      if (c.name.toLowerCase().indexOf(searchText) === -1 && c.description.toLowerCase().indexOf(searchText) === -1) return false;
+    }
+    // Stat filter
+    if (statFilter === 'recommended' && c.relevanceScore < 80) return false;
+    if (statFilter === 'inBasket' && selectedIds.indexOf(c.id) === -1) return false;
+    if (statFilter === 'critical') {
+      var depsCount = componentDataSource.filter(function(other) { return other.dependencies.indexOf(c.id) !== -1; }).length;
+      if (depsCount === 0) return false;
+    }
+    return true;
+  });
+
+  // Sort by relevance score desc
+  filtered.sort(function(a, b) { return b.relevanceScore - a.relevanceScore; });
+
+  document.getElementById('resultCount').textContent = filtered.length + ' 个组件';
+  renderComponents(filtered);
+}
+
+function setStatFilter(type, el) {
+  statFilter = type;
+  document.querySelectorAll('.stat-card').forEach(function(q) { q.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  applyFilters();
+}
+
+// ====================================================================
+// RENDER COMPONENTS
+// ====================================================================
+function renderComponents(list) {
+  if (list.length === 0) {
+    grid.innerHTML = '<div class="col-span-2 text-center py-16" style="color:var(--text-tertiary)"><i class="fa-solid fa-inbox text-4xl mb-4"></i><div class="text-sm">无匹配组件</div><div class="text-xs mt-1">调整筛选条件以查看更多组件</div></div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var c = list[i];
+    var isSelected = selectedIds.indexOf(c.id) !== -1;
+    var isRecommended = c.relevanceScore >= 85;
+
+    // Performance color class
+    var rtClass = c.responseTime <= 50 ? 'good' : (c.responseTime <= 150 ? 'mid' : 'poor');
+    var tpClass = c.throughput >= 1000 ? 'good' : (c.throughput >= 300 ? 'mid' : 'poor');
+
+    // Dependency count
+    var depCount = c.dependencies.length;
+    var depByCount = componentDataSource.filter(function(o) { return o.dependencies.indexOf(c.id) !== -1; }).length;
+
+    // Status badge label
+    var statusLabel = c.status === 'published' ? '已发布' : (c.status === 'developing' ? '开发中' : '草稿');
+    var statusColor = c.status === 'published' ? 'var(--success)' : (c.status === 'developing' ? 'var(--brand)' : 'var(--text-tertiary)');
+    var statusBg = c.status === 'published' ? 'var(--success-subtle)' : (c.status === 'developing' ? 'var(--brand-subtle)' : 'var(--surface-subtle)');
+
+    html += '<div class="card comp-card p-3' + (isSelected ? ' selected' : '') + '" onclick="toggleSelect(\'' + c.id + '\')" data-id="' + c.id + '">';
+
+    // Recommend badge
+    if (isRecommended) {
+      html += '<div class="rec-badge"><i class="fa-solid fa-star mr-1" style="font-size:7px"></i>推荐</div>';
+    }
+
+    // Select indicator
+    html += '<div class="sel-indicator">' + (isSelected ? '<i class="fa-solid fa-check"></i>' : '') + '</div>';
+
+    // Icon + status
+    html += '<div class="flex items-center justify-between mb-2">';
+    html += '<div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:' + c.color + '"><i class="fa-solid ' + c.icon + ' text-white" style="font-size:14px"></i></div>';
+    html += '<span class="badge" style="background:' + statusBg + ';color:' + statusColor + '">' + statusLabel + '</span>';
+    html += '</div>';
+
+    // Name + desc
+    html += '<h4 class="text-sm font-medium mb-1" style="color:var(--text-primary)">' + c.name + '</h4>';
+    html += '<p class="text-xs mb-2" style="color:var(--text-tertiary);line-height:1.4">' + c.description.substring(0, 40) + (c.description.length > 40 ? '...' : '') + '</p>';
+
+    // Performance metrics
+    html += '<div class="metric-row">';
+    html += '<span><i class="fa-solid fa-gauge-high ' + rtClass + '" style="font-size:9px"></i> ' + c.responseTime + 'ms</span>';
+    html += '<span><i class="fa-solid fa-arrow-trend-up ' + tpClass + '" style="font-size:9px"></i> ' + c.throughput + ' TPS</span>';
+    html += '<span><i class="fa-solid fa-star" style="font-size:9px;color:var(--amber)"></i> ' + c.relevanceScore + '</span>';
+    html += '</div>';
+
+    // Dependency indicators
+    html += '<div class="dep-indicators">';
+    if (depCount > 0) {
+      html += '<span class="badge" style="background:var(--info-subtle);color:var(--info);font-size:9px"><i class="fa-solid fa-arrow-right mr-1" style="font-size:7px"></i>依赖' + depCount + '</span>';
+    }
+    if (depByCount > 0) {
+      html += '<span class="badge" style="background:var(--amber-subtle);color:var(--amber);font-size:9px"><i class="fa-solid fa-arrow-left mr-1" style="font-size:7px"></i>被依赖' + depByCount + '</span>';
+    }
+    html += '<span class="badge" style="background:var(--surface-subtle);color:var(--text-secondary);font-size:9px">' + c.type + '</span>';
+    html += '<button class="badge" style="background:transparent;color:var(--brand);font-size:9px;cursor:pointer;border:1px solid var(--brand);padding:1px 8px;border-radius:var(--radius-full);transition:all 0.15s" onclick="event.stopPropagation();showDetail(\'' + c.id + '\')" title="查看详情"><i class="fa-solid fa-eye mr-1" style="font-size:7px"></i>详情</button>';
+    html += '</div>';
+
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+// ====================================================================
+// SELECTION
+// ====================================================================
+function toggleSelect(id) {
+  var idx = selectedIds.indexOf(id);
+  if (idx === -1) {
+    selectedIds.push(id);
+  } else {
+    selectedIds.splice(idx, 1);
+  }
+  updateStats();
+  applyFilters(); // re-render with current filter
+  renderBasket();
+}
+
+function toggleSelectMode() {
+  multiSelectMode = !multiSelectMode;
+  document.getElementById('modeLabel').textContent = multiSelectMode ? '多选模式' : '单选模式';
+  showToast(multiSelectMode ? '已切换为多选模式，点击组件可多选' : '已切换为单选模式，点击组件仅选中一个', 'info');
+}
+
+function clearBasket() {
+  if (selectedIds.length === 0) return;
+  selectedIds = [];
+  updateStats();
+  applyFilters();
+  renderBasket();
+  showToast('已清空组合篮子', 'info');
+}
+
+// ====================================================================
+// RENDER BASKET
+// ====================================================================
+function renderBasket() {
+  var selected = componentDataSource.filter(function(c) { return selectedIds.indexOf(c.id) !== -1; });
+  var count = selected.length;
+
+  basketCount.textContent = count;
+
+  if (count === 0) {
+    basketBody.innerHTML = '<div class="basket-empty"><i class="fa-solid fa-basket-shopping"></i><div class="text-sm">组合篮子为空</div><div class="text-xs mt-1">从左侧点击组件添加到篮子</div></div>';
+    basketFooter.style.display = 'none';
+    document.getElementById('clearBasketBtn').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('clearBasketBtn').style.display = '';
+  basketFooter.style.display = '';
+
+  // Basket items
+  var html = '<div class="basket-section-title"><i class="fa-solid fa-cubes"></i>已选组件 (' + count + ')</div>';
+  for (var i = 0; i < selected.length; i++) {
+    var c = selected[i];
+    // Find what this component depends on that's also selected
+    var depInBasket = c.dependencies.filter(function(did) { return selectedIds.indexOf(did) !== -1; });
+    var depLabel = '';
+    if (depInBasket.length > 0) {
+      var depNames = depInBasket.map(function(did) {
+        var dc = componentDataSource.find(function(x) { return x.id === did; });
+        return dc ? dc.name : did;
+      });
+      depLabel = '<span class="bi-dep" title="依赖：' + depNames.join(', ') + '"><i class="fa-solid fa-link dep-icon"></i></span>';
+    }
+    html += '<div class="basket-item">';
+    html += '<div class="bi-icon" style="background:' + c.color + '"><i class="fa-solid ' + c.icon + '"></i></div>';
+    html += '<div class="bi-info"><div class="bi-name">' + c.name + '</div><div class="bi-meta">' + c.type + ' · ' + c.responseTime + 'ms · ' + c.throughput + ' TPS</div></div>';
+    html += depLabel;
+    html += '<button class="bi-remove" onclick="event.stopPropagation();toggleSelect(\'' + c.id + '\')" title="移除"><i class="fa-solid fa-xmark"></i></button>';
+    html += '</div>';
+  }
+
+  basketBody.innerHTML = html;
+
+  // Metrics summary
+  renderMetricsSummary(selected);
+
+  // Dependency graph
+  renderDependencyGraph(selected);
+}
+
+// ====================================================================
+// METRICS SUMMARY
+// ====================================================================
+function renderMetricsSummary(selected) {
+  if (selected.length === 0) {
+    metricsSummary.innerHTML = '';
+    return;
+  }
+
+  var avgRt = Math.round(selected.reduce(function(s, c) { return s + c.responseTime; }, 0) / selected.length);
+  var totalTp = selected.reduce(function(s, c) { return s + c.throughput; }, 0);
+  var totalDeps = selected.reduce(function(s, c) { return s + c.dependencies.length; }, 0);
+  var recCount = selected.filter(function(c) { return c.relevanceScore >= 85; }).length;
+
+  var html = '';
+  html += '<div class="metric-card"><div class="mc-value">' + avgRt + '<span style="font-size:11px;font-weight:400;color:var(--text-tertiary)">ms</span></div><div class="mc-label">平均响应时间</div></div>';
+  html += '<div class="metric-card"><div class="mc-value">' + totalTp + '<span style="font-size:11px;font-weight:400;color:var(--text-tertiary)"> TPS</span></div><div class="mc-label">总吞吐量</div></div>';
+  html += '<div class="metric-card"><div class="mc-value">' + totalDeps + '</div><div class="mc-label">依赖关系</div></div>';
+  html += '<div class="metric-card"><div class="mc-value" style="color:var(--amber)">' + recCount + '</div><div class="mc-label">推荐组件</div></div>';
+
+  metricsSummary.innerHTML = html;
+}
+
+// ====================================================================
+// DEPENDENCY GRAPH (SVG)
+// ====================================================================
+function renderDependencyGraph(selected) {
+  if (selected.length < 2) {
+    depContainer.innerHTML = '<div class="text-center py-6 text-xs" style="color:var(--text-tertiary)">选择至少 2 个组件查看依赖关系</div>';
+    return;
+  }
+
+  var w = 320;
+  var h = Math.max(140, selected.length * 36 + 20);
+  var cx = 40;   // left column x
+  var cy = 100;  // right column x
+  var nodeR = 8;
+  var spacing = Math.min(36, Math.floor((h - 20) / selected.length));
+  var startY = 10;
+
+  var svg = '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">';
+
+  // Draw links (dependencies)
+  var links = [];
+  for (var i = 0; i < selected.length; i++) {
+    for (var j = 0; j < selected.length; j++) {
+      if (i === j) continue;
+      if (selected[i].dependencies.indexOf(selected[j].id) !== -1) {
+        var y1 = startY + i * spacing + nodeR;
+        var y2 = startY + j * spacing + nodeR;
+        links.push({ from: i, to: j, x1: cx, y1: y1, x2: cy, y2: y2 });
+      }
+    }
+  }
+
+  // Draw links
+  for (var li = 0; li < links.length; li++) {
+    var l = links[li];
+    var midX = (l.x1 + l.x2) / 2;
+    svg += '<path class="dep-link has-dep" d="M' + l.x1 + ',' + l.y1 + ' C' + midX + ',' + l.y1 + ' ' + midX + ',' + l.y2 + ' ' + l.x2 + ',' + l.y2 + '" />';
+    // Arrow head
+    var angle = Math.atan2(l.y2 - l.y1, l.x2 - l.x1);
+    var ax = l.x2 - 12;
+    var ay = l.y2;
+    svg += '<polygon points="' + (ax-4) + ',' + (ay-3) + ' ' + (ax-4) + ',' + (ay+3) + ' ' + (ax+2) + ',' + ay + '" fill="oklch(55% 0.12 240)" opacity="0.6"/>';
+  }
+
+  // Draw nodes - left column (names)
+  for (var i = 0; i < selected.length; i++) {
+    var c = selected[i];
+    var cyPos = startY + i * spacing + nodeR;
+    var hasOut = links.some(function(l) { return l.from === i; });
+    var hasIn = links.some(function(l) { return l.to === i; });
+    var fillColor = hasOut || hasIn ? 'var(--brand)' : 'var(--border-strong)';
+
+    // Left node
+    svg += '<circle cx="' + cx + '" cy="' + cyPos + '" r="' + nodeR + '" fill="' + fillColor + '" class="dep-node" />';
+    // Right label
+    svg += '<text x="' + (cx + 14) + '" y="' + (cyPos + 4) + '" font-size="10" fill="var(--text-primary)" font-family="DM Sans,sans-serif">' + truncateText(c.name, 16) + '</text>';
+
+    // Right node
+    svg += '<circle cx="' + cy + '" cy="' + cyPos + '" r="' + (nodeR - 1) + '" fill="' + fillColor + '" opacity="0.5" class="dep-node" />';
+    svg += '<text x="' + (cy + 14) + '" y="' + (cyPos + 4) + '" font-size="10" fill="var(--text-tertiary)" font-family="DM Sans,sans-serif">' + c.responseTime + 'ms</text>';
+  }
+
+  // Legend
+  var legY = h - 20;
+  svg += '<line x1="12" y1="' + (legY - 2) + '" x2="28" y2="' + (legY - 2) + '" stroke="oklch(55% 0.12 240)" stroke-width="1.5" stroke-dasharray="3,2"/>';
+  svg += '<text x="32" y="' + (legY + 3) + '" font-size="8" fill="var(--text-tertiary)" font-family="DM Sans,sans-serif">依赖关系</text>';
+  svg += '<circle cx="110" cy="' + (legY - 2) + '" r="4" fill="var(--brand)"/>';
+  svg += '<text x="118" y="' + (legY + 3) + '" font-size="8" fill="var(--text-tertiary)" font-family="DM Sans,sans-serif">组件</text>';
+
+  svg += '</svg>';
+
+  depContainer.innerHTML = svg;
+}
+
+function truncateText(text, maxLen) {
+  return text.length > maxLen ? text.substring(0, maxLen) + '…' : text;
+}
+
+// ====================================================================
+// TEMPLATE MANAGEMENT
+// ====================================================================
+var TEMPLATE_KEY = 'component_templates';
+
+function renderTemplateFullList() {
+  var container = document.getElementById('templateFullList');
+  var templates = loadTemplatesFromStorage();
+  var keys = Object.keys(templates);
+  if (keys.length === 0) {
+    container.innerHTML = '<div class="text-center py-6 text-xs" style="color:var(--text-tertiary)">暂无已保存的模板，切换到组合篮子选择组件后保存模板</div>';
+    return;
+  }
+  var h = '';
+  keys.forEach(function(k) {
+    var t = templates[k];
+    var dateStr = '';
+    try { dateStr = new Date(t.savedAt).toLocaleDateString('zh-CN'); } catch(e) {}
+    h += '<div class="template-item">'
+      + '<div style="cursor:pointer;flex:1" onclick="viewTemplate(\'' + k.replace(/'/g,"\\'") + '\')"><div class="ti-name">' + k + '</div><div class="ti-meta">' + t.count + ' 个组件 · ' + dateStr + '</div></div>'
+      + '<div class="ti-actions">'
+      + '<button class="ti-load" onclick="event.stopPropagation();loadTemplate(\'' + k.replace(/'/g,"\\'") + '\');switchBasketTab(\'basket\')" title="加载"><i class="fa-solid fa-rotate-left"></i></button>'
+      + '<button class="ti-del" onclick="event.stopPropagation();deleteTemplate(\'' + k.replace(/'/g,"\\'") + '\')" title="删除"><i class="fa-solid fa-trash-can"></i></button>'
+      + '</div></div>';
+  });
+  container.innerHTML = h;
+}
+
+function viewTemplate(name) {
+  var templates = loadTemplatesFromStorage();
+  var tpl = templates[name];
+  if (!tpl) return;
+  document.getElementById('templateDetailTitle').textContent = name + '（' + tpl.count + ' 个组件）';
+  var names = tpl.ids.map(function(id) {
+    var c = componentDataSource.find(function(x) { return x.id === id; });
+    return c ? '<span class="badge" style="background:var(--brand-subtle);color:var(--brand);margin:2px 4px 2px 0;font-size:10px;display:inline-block"><i class="fa-solid ' + c.icon + '" style="font-size:8px;margin-right:3px"></i>' + c.name + '</span>' : id;
+  }).join('');
+  document.getElementById('templateDetailBody').innerHTML = names || '<span style="color:var(--text-tertiary)">组件数据不可用</span>';
+  document.getElementById('templateDetail').style.display = 'block';
+}
+
+function closeTemplateDetail() {
+  document.getElementById('templateDetail').style.display = 'none';
+}
+
+function saveTemplateFromInput() {
+  var name = document.getElementById('templateNameInput2').value.trim();
+  if (!name) { showToast('请输入模板名称', 'warning'); return; }
+  if (selectedIds.length === 0) { showToast('组合篮子为空，无法保存模板', 'warning'); return; }
+  doSaveTemplate(name);
+}
+
+function saveTemplate() {
+  var name = document.getElementById('templateNameInput').value.trim();
+  if (!name) { showToast('请输入模板名称', 'warning'); return; }
+  if (selectedIds.length === 0) { showToast('组合篮子为空，无法保存模板', 'warning'); return; }
+  doSaveTemplate(name);
+}
+
+function doSaveTemplate(name) {
+  var templates = loadTemplatesFromStorage();
+  templates[name] = {
+    name: name,
+    ids: selectedIds.slice(),
+    count: selectedIds.length,
+    savedAt: new Date().toISOString()
+  };
+  localStorage.setItem(TEMPLATE_KEY, JSON.stringify(templates));
+  document.getElementById('templateNameInput').value = '';
+  document.getElementById('templateNameInput2').value = '';
+  renderTemplateFullList();
+  showToast('模板 "' + name + '" 已保存（' + selectedIds.length + ' 个组件）', 'success');
+}
+
+function loadTemplatesFromStorage() {
+  try { return JSON.parse(localStorage.getItem(TEMPLATE_KEY)) || {}; } catch(e) { return {}; }
+}
+
+function loadTemplate(name) {
+  var templates = loadTemplatesFromStorage();
+  var tpl = templates[name];
+  if (!tpl) { showToast('模板不存在', 'warning'); return; }
+
+  selectedIds = tpl.ids.slice();
+  updateStats();
+  applyFilters();
+  renderBasket();
+  renderTemplateFullList();
+  closeTemplateModal();
+  showToast('已加载模板 "' + name + '"（' + tpl.count + ' 个组件）', 'success');
+}
+
+function deleteTemplate(name) {
+  var templates = loadTemplatesFromStorage();
+  delete templates[name];
+  localStorage.setItem(TEMPLATE_KEY, JSON.stringify(templates));
+  renderTemplateList();
+  renderTemplateFullList();
+  showToast('已删除模板 "' + name + '"', 'info');
+}
+
+function showTemplateModal() {
+  renderTemplateList();
+  document.getElementById('templateModal').classList.add('show');
+  document.getElementById('templateModal').style.display = 'flex';
+}
+
+function closeTemplateModal() {
+  document.getElementById('templateModal').classList.remove('show');
+  document.getElementById('templateModal').style.display = 'none';
+}
+
+function renderTemplateList() {
+  var templates = loadTemplatesFromStorage();
+  var keys = Object.keys(templates);
+  var container = document.getElementById('templateList');
+
+  if (keys.length === 0) {
+    container.innerHTML = '<div class="text-center py-6 text-xs" style="color:var(--text-tertiary)">暂无已保存的模板</div>';
+    return;
+  }
+
+  var html = '';
+  // Sort by savedAt descending
+  keys.sort(function(a, b) {
+    return new Date(templates[b].savedAt) - new Date(a.savedAt);
+  });
+
+  for (var i = 0; i < keys.length; i++) {
+    var t = templates[keys[i]];
+    var dateStr = t.savedAt ? new Date(t.savedAt).toLocaleDateString('zh-CN') : '未知';
+    html += '<div class="template-item">';
+    html += '<div><div class="ti-name"><i class="fa-regular fa-file-lines mr-1" style="color:var(--brand)"></i>' + t.name + '</div><div class="ti-meta">' + t.count + ' 个组件 · ' + dateStr + '</div></div>';
+    html += '<div class="ti-actions">';
+    html += '<button class="ti-load" onclick="loadTemplate(\'' + t.name.replace(/'/g, "\\'") + '\')" title="加载"><i class="fa-solid fa-upload"></i></button>';
+    html += '<button class="ti-del" onclick="deleteTemplate(\'' + t.name.replace(/'/g, "\\'") + '\')" title="删除"><i class="fa-solid fa-trash"></i></button>';
+    html += '</div></div>';
+  }
+  container.innerHTML = html;
+}
+
+// ====================================================================
+// ASSEMBLY INTEGRATION
+// ====================================================================
+function goToAssembly() {
+  if (selectedIds.length === 0) {
+    showToast('请先在组合篮子中添加组件', 'warning');
+    return;
+  }
+  var selected = componentDataSource.filter(function(c) { return selectedIds.indexOf(c.id) !== -1; });
+  var names = selected.map(function(c) { return c.name; }).join(',');
+  Scaffold.markStepCompleted('components');
+  Scaffold.navigateTo('assembly.html', { componentIds: selectedIds.join(','), componentNames: names });
+}
+
+// ====================================================================
+// STATS
+// ====================================================================
+function updateStats() {
+  var total = componentDataSource.length;
+  var recommended = componentDataSource.filter(function(c) { return c.relevanceScore >= 85; }).length;
+  var inBasket = selectedIds.length;
+  var critical = componentDataSource.filter(function(c) {
+    return componentDataSource.some(function(o) { return o.dependencies.indexOf(c.id) !== -1; });
+  }).length;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statRecommended').textContent = recommended;
+  document.getElementById('statInBasket').textContent = inBasket;
+  document.getElementById('statCritical').textContent = critical;
+}
+
+// ====================================================================
+// TOAST
+// ====================================================================
+function showToast(message, type) {
+  type = type || 'info';
+  var iconMap = { success: 'fa-check-circle', info: 'fa-info-circle', warning: 'fa-exclamation-triangle' };
+  toast.className = 'orchestra-toast show toast-' + type;
+  toast.innerHTML = '<i class="fa-regular ' + (iconMap[type] || 'fa-info-circle') + '"></i><span>' + message + '</span>';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function() { toast.classList.remove('show'); }, 2500);
+}
+
+// ====================================================================
+// COMPONENT DETAIL MODAL
+// ====================================================================
+function showDetail(id) {
+  var comp = componentDataSource.find(function(c) { return c.id === id; });
+  if (!comp) return;
+
+  // Header
+  document.getElementById('detailIcon').className = 'fa-solid ' + comp.icon;
+  document.getElementById('detailIconWrap').style.background = comp.color;
+  document.getElementById('detailName').textContent = comp.name;
+  document.getElementById('detailCategory').textContent = comp.category;
+
+  // Type badge
+  var typeBadge = document.getElementById('detailTypeBadge');
+  typeBadge.textContent = comp.type;
+  typeBadge.style.background =
+    comp.type === '业务组件' ? 'var(--brand-subtle)' :
+    comp.type === '数据组件' ? 'var(--success-subtle)' :
+    comp.type === '模型组件' ? 'oklch(55% 0.22 315 / 0.15)' :
+    comp.type === '规则组件' ? 'var(--warning-subtle)' :
+    comp.type === '图件' ? 'var(--info-subtle)' : 'var(--surface-subtle)';
+  typeBadge.style.color =
+    comp.type === '业务组件' ? 'var(--brand)' :
+    comp.type === '数据组件' ? 'var(--success)' :
+    comp.type === '模型组件' ? 'oklch(55% 0.22 315)' :
+    comp.type === '规则组件' ? 'var(--warning)' :
+    comp.type === '图件' ? 'var(--info)' : 'var(--text-secondary)';
+
+  // Status badge
+  var statusBadge = document.getElementById('detailStatusBadge');
+  var statusLabel = comp.status === 'published' ? '已发布' : (comp.status === 'developing' ? '开发中' : '草稿');
+  var statusColor = comp.status === 'published' ? 'var(--success)' : (comp.status === 'developing' ? 'var(--brand)' : 'var(--text-tertiary)');
+  var statusBg = comp.status === 'published' ? 'var(--success-subtle)' : (comp.status === 'developing' ? 'var(--brand-subtle)' : 'var(--surface-subtle)');
+  statusBadge.textContent = statusLabel;
+  statusBadge.style.background = statusBg;
+  statusBadge.style.color = statusColor;
+
+  // Build detail content
+  var html = '';
+
+  // Description
+  html += '<div class="mb-4"><h4 class="text-xs font-semibold mb-1" style="color:var(--text-secondary)">描述</h4>';
+  html += '<p class="text-sm" style="color:var(--text-primary);line-height:1.6">' + comp.description + '</p></div>';
+
+  // Performance metrics
+  var rtClass = comp.responseTime <= 50 ? 'var(--success)' : (comp.responseTime <= 150 ? 'var(--warning)' : 'var(--danger)');
+  var tpClass = comp.throughput >= 1000 ? 'var(--success)' : (comp.throughput >= 300 ? 'var(--warning)' : 'var(--danger)');
+  html += '<div class="mb-4"><h4 class="text-xs font-semibold mb-2" style="color:var(--text-secondary)">性能指标</h4>';
+  html += '<div class="grid grid-cols-3 gap-3">';
+  html += '<div class="rounded-lg p-3 text-center" style="background:var(--surface-subtle)"><div class="text-lg font-bold" style="color:' + rtClass + '">' + comp.responseTime + '</div><div class="text-[10px]" style="color:var(--text-tertiary)">响应时间 (ms)</div></div>';
+  html += '<div class="rounded-lg p-3 text-center" style="background:var(--surface-subtle)"><div class="text-lg font-bold" style="color:' + tpClass + '">' + comp.throughput + '</div><div class="text-[10px]" style="color:var(--text-tertiary)">吞吐量 (TPS)</div></div>';
+  html += '<div class="rounded-lg p-3 text-center" style="background:var(--surface-subtle)"><div class="text-lg font-bold" style="color:var(--amber)">' + comp.relevanceScore + '</div><div class="text-[10px]" style="color:var(--text-tertiary)">相关度评分</div></div>';
+  html += '</div></div>';
+
+  // Dependencies
+  html += '<div class="mb-4"><h4 class="text-xs font-semibold mb-2" style="color:var(--text-secondary)">依赖关系</h4>';
+  if (comp.dependencies.length === 0) {
+    html += '<p class="text-xs" style="color:var(--text-tertiary)">此组件无依赖项</p>';
+  } else {
+    html += '<div class="flex flex-wrap gap-2">';
+    for (var di = 0; di < comp.dependencies.length; di++) {
+      var depComp = componentDataSource.find(function(x) { return x.id === comp.dependencies[di]; });
+      var depName = depComp ? depComp.name : comp.dependencies[di];
+      html += '<span class="badge" style="background:var(--info-subtle);color:var(--info);font-size:10px;padding:3px 10px"><i class="fa-solid fa-arrow-right mr-1" style="font-size:8px"></i>' + depName + '</span>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Config parameters
+  html += '<div><h4 class="text-xs font-semibold mb-2" style="color:var(--text-secondary)">配置参数</h4>';
+  html += '<div class="rounded-lg overflow-hidden border" style="border-color:var(--border-default)">';
+  html += '<table class="w-full text-xs">';
+  var keys = Object.keys(comp.config);
+  for (var ki = 0; ki < keys.length; ki++) {
+    var bg = ki % 2 === 0 ? 'var(--surface-subtle)' : 'transparent';
+    html += '<tr><td class="px-3 py-2 font-medium" style="background:' + bg + ';color:var(--text-secondary);width:40%;border-bottom:1px solid var(--border-subtle)">' + keys[ki] + '</td>';
+    html += '<td class="px-3 py-2" style="background:' + bg + ';color:var(--text-primary);border-bottom:1px solid var(--border-subtle)">' + comp.config[keys[ki]] + '</td></tr>';
+  }
+  html += '</table></div></div>';
+
+  document.getElementById('detailContent').innerHTML = html;
+
+  // Wire up basket button
+  var basketBtn = document.getElementById('detailBasketBtn');
+  var isInBasket = selectedIds.indexOf(comp.id) !== -1;
+  basketBtn.textContent = isInBasket ? '从篮子移除' : '添加到篮子';
+  basketBtn.className = isInBasket ? 'btn btn-outline' : 'btn btn-primary';
+  basketBtn.onclick = function(e) {
+    e.stopPropagation();
+    toggleSelect(comp.id);
+    // Update button state
+    var nowInBasket = selectedIds.indexOf(comp.id) !== -1;
+    basketBtn.textContent = nowInBasket ? '从篮子移除' : '添加到篮子';
+    basketBtn.className = nowInBasket ? 'btn btn-outline' : 'btn btn-primary';
+  };
+
+  // Show modal
+  var modal = document.getElementById('componentDetailModal');
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+}
+
+function closeDetail() {
+  var modal = document.getElementById('componentDetailModal');
+  modal.classList.add('hidden');
+  modal.style.display = 'none';
+}
+
+// ====================================================================
+// DEMAND SELECTOR
+// ====================================================================
+function showDemandSelector() {
+  // Create modal overlay
+  var overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 bg-black bg-opacity-45 flex items-center justify-center';
+  overlay.style.zIndex = '5000';
+  overlay.innerHTML = '<div class="bg-white rounded-lg w-[420px] overflow-hidden flex flex-col shadow-2xl">' +
+    '<div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:var(--border-default)">' +
+      '<h3 class="text-sm font-semibold"><i class="fa-solid fa-bullseye mr-2" style="color:var(--brand)"></i>选择需求上下文</h3>' +
+      '<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100" onclick="closeDemandSelector(this)"><i class="fa-solid fa-xmark"></i></button>' +
+    '</div>' +
+    '<div class="p-4 space-y-2">' +
+      '<div class="demand-option p-3 rounded-lg border cursor-pointer hover:border-[var(--brand)] hover:bg-[var(--brand-wash)] transition" style="border-color:var(--border-default)" data-id="DMD-0024" data-title="油气生产智能感知平台">' +
+        '<div class="text-sm font-medium" style="color:var(--text-primary)">油气生产智能感知平台</div>' +
+        '<div class="text-xs" style="color:var(--text-tertiary)">DMD-0024 · 油气新能源领域</div>' +
+      '</div>' +
+      '<div class="demand-option p-3 rounded-lg border cursor-pointer hover:border-[var(--brand)] hover:bg-[var(--brand-wash)] transition" style="border-color:var(--border-default)" data-id="DMD-0021" data-title="生产报表自动生成">' +
+        '<div class="text-sm font-medium" style="color:var(--text-primary)">生产报表自动生成</div>' +
+        '<div class="text-xs" style="color:var(--text-tertiary)">DMD-0021 · 油田技术服务领域</div>' +
+      '</div>' +
+      '<div class="demand-option p-3 rounded-lg border cursor-pointer hover:border-[var(--brand)] hover:bg-[var(--brand-wash)] transition" style="border-color:var(--border-default)" data-id="DMD-0019" data-title="安全巡检数字化">' +
+        '<div class="text-sm font-medium" style="color:var(--text-primary)">安全巡检数字化</div>' +
+        '<div class="text-xs" style="color:var(--text-tertiary)">DMD-0019 · 安全环保领域</div>' +
+      '</div>' +
+      '<div class="demand-option p-3 rounded-lg border cursor-pointer hover:border-[var(--brand)] hover:bg-[var(--brand-wash)] transition" style="border-color:var(--border-default)" data-id="DMD-0001" data-title="基础数据管理平台">' +
+        '<div class="text-sm font-medium" style="color:var(--text-primary)">基础数据管理平台</div>' +
+        '<div class="text-xs" style="color:var(--text-tertiary)">DMD-0001 · 数据管理领域</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="px-5 py-3 border-t flex justify-end gap-2" style="border-color:var(--border-default)">' +
+      '<button class="btn btn-outline btn-sm" onclick="closeDemandSelector(this)">取消</button>' +
+    '</div>' +
+  '</div>';
+
+  // Attach click handlers to demand options
+  document.body.appendChild(overlay);
+  var options = overlay.querySelectorAll('.demand-option');
+  for (var i = 0; i < options.length; i++) {
+    options[i].onclick = function() {
+      var id = this.getAttribute('data-id');
+      var title = this.getAttribute('data-title');
+      Scaffold.setCurrentDemand(id, title);
+      Scaffold.renderDemandBar();
+      overlay.remove();
+      showToast('已切换需求上下文：' + title, 'success');
+    };
+  }
+}
+function closeDemandSelector(el) {
+  var overlay = el.closest('.fixed');
+  if (overlay) overlay.remove();
+}
+
+// ====================================================================
+// SCENARIO LOADER
+// ====================================================================
+function loadFullScenario() {
+  // Seed global scenario data
+  Scaffold.seedScenarioData();
+  Scaffold.setCurrentDemand('DMD-0024', '油气生产智能感知平台');
+  Scaffold.renderDemandBar();
+
+  // The 6 scenario component IDs for full-chain scenario
+  var scenarioIds = ['C001','C002','C017','C018','C019','C003'];
+
+  // Set selected IDs
+  selectedIds = scenarioIds.slice();
+
+  // Update UI
+  updateStats();
+  applyFilters();
+  renderBasket();
+
+  // Save active demand for assembly (without navigating away)
+  var selected = componentDataSource.filter(function(c) { return selectedIds.indexOf(c.id) !== -1; });
+  var names = selected.map(function(c) { return c.name; }).join(',');
+  try { localStorage.setItem('scaffold_nav_params', JSON.stringify({ componentIds: selectedIds.join(','), componentNames: names })); } catch(e) {}
+
+  // Show toast with workflow steps
+  showToast('全链路场景已载入！操作顺序：①组件编排→②协同设计→③数据标准→④规则配置→⑤智能适配→⑥预览发布', 'success');
+}
+
+// ====================================================================
+// RENDER CHIPS COUNT
+// ====================================================================
+document.addEventListener('DOMContentLoaded', function() {
+  // Breadcrumb
+  var bc = document.getElementById('breadcrumb');
+  if (bc) {
+    bc.innerHTML = Scaffold.renderBreadcrumb([
+      { label: '首页', href: '../index.html' },
+      { label: '应用架构使能', href: '#' },
+      { label: '领域服务协同工作台', href: '#' },
+      { label: '领域服务组件编排' }
+    ]);
+  }
+
+  init();
+  Scaffold.init('components');
+});
+
+// Make Scaffold.renderBreadcrumb accessible (fallback if not in scaffold)
+if (!window.Scaffold.renderBreadcrumb) {
+  window.Scaffold.renderBreadcrumb = function(items) {
+    var html = '<div class="breadcrumb">';
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].href && items[i].href !== '#') {
+        html += '<a href="' + items[i].href + '">' + items[i].label + '</a>';
+      } else {
+        html += '<span>' + items[i].label + '</span>';
+      }
+      if (i < items.length - 1) html += ' <span class="breadcrumb-sep">/</span>';
+    }
+    html += '</div>';
+    return html;
+  };
+}
+</script>
+</body>
+</html>

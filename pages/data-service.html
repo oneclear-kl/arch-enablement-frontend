@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+<style>
+/* ===== 领域服务数据标准接入 - 自定义样式 ===== */
+*{box-sizing:border-box}
+:root{--ds-panel-radius:var(--radius-md);--ds-browser-h:calc(100vh - 280px)}
+
+/* --- 2-Column Layout --- */
+.ds-layout{display:flex;gap:16px;align-items:flex-start}
+.ds-browser{flex:0 0 55%;min-width:0}
+.ds-config-panel{flex:0 0 45%;min-width:0;position:sticky;top:0}
+@media(max-width:1200px){.ds-layout{flex-direction:column}.ds-browser,.ds-config-panel{flex:1 1 auto}}
+
+/* --- Domain Tabs --- */
+.domain-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;padding:4px;border-radius:var(--radius-md);background:var(--surface-subtle)}
+.domain-tab{padding:5px 12px;font-size:11px;border-radius:var(--radius-sm);cursor:pointer;border:none;background:transparent;color:var(--text-secondary);transition:all 0.15s;white-space:nowrap}
+.domain-tab:hover{background:var(--surface-raised);color:var(--text-primary)}
+.domain-tab.active{background:var(--brand);color:var(--text-inverse);font-weight:600;box-shadow:var(--shadow-sm)}
+
+/* --- Model Card in Browser --- */
+.ds-model-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:6px;border:1px solid var(--border-subtle);background:var(--surface-raised);transition:all 0.15s;cursor:pointer}
+.ds-model-card:hover{border-color:var(--brand);box-shadow:var(--shadow-sm)}
+.ds-model-card .mc-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:var(--text-inverse)}
+.ds-model-card .mc-info{flex:1;min-width:0}
+.ds-model-card .mc-name{font-size:13px;font-weight:500;color:var(--text-primary)}
+.ds-model-card .mc-meta{font-size:10px;color:var(--text-tertiary)}
+.ds-model-card .mc-fields{font-size:10px;color:var(--text-tertiary);margin-top:2px}
+.ds-model-card .mc-action{flex-shrink:0}
+.ds-model-card .mc-action button{padding:3px 12px;font-size:11px}
+
+/* --- Referenced Model Item (Right Panel) --- */
+.ref-model-item{padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:6px;border:1px solid var(--border-subtle);background:var(--surface-raised)}
+.ref-model-item .rmi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ref-model-item .rmi-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+.ref-model-item .rmi-domain{font-size:10px;padding:1px 8px;border-radius:var(--radius-full);background:var(--brand-subtle);color:var(--brand)}
+.ref-model-item .rmi-constraints{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.ref-model-item .rmi-constraint{padding:2px 8px;font-size:10px;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-secondary)}
+.ref-model-item .rmi-fields{margin-top:6px;max-height:80px;overflow-y:auto}
+.ref-model-item .rmi-field{display:flex;align-items:center;justify-content:space-between;padding:2px 6px;font-size:10px;color:var(--text-tertiary);border-radius:3px}
+.ref-model-item .rmi-field:hover{background:var(--surface-subtle)}
+
+/* --- Quality Check Section --- */
+.quality-section{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:var(--radius-md);overflow:hidden;margin-top:12px}
+.quality-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-default);background:var(--surface-subtle)}
+.quality-body{padding:12px}
+.quality-rule-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);margin-bottom:4px;border:1px solid var(--border-subtle);font-size:12px}
+.quality-rule-row .qr-name{flex:1;font-weight:500}
+.quality-rule-row .qr-severity{font-size:10px;padding:1px 8px;border-radius:var(--radius-full);font-weight:500}
+.quality-rule-row .qr-toggle{width:32px;height:18px;border-radius:9px;border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
+.quality-rule-row .qr-toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:white;transition:transform 0.2s}
+.quality-rule-row .qr-toggle.on{background:var(--brand)}
+.quality-rule-row .qr-toggle.on::after{transform:translateX(14px)}
+.quality-rule-row .qr-toggle.off{background:var(--border-strong)}
+.quality-rule-row .qr-toggle.off::after{transform:translateX(0)}
+
+/* --- Quality Results Table --- */
+.qr-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.qr-table th{padding:6px 8px;text-align:left;font-weight:600;color:var(--text-secondary);background:var(--surface-subtle);border-bottom:1px solid var(--border-default)}
+.qr-table td{padding:5px 8px;border-bottom:1px solid var(--border-subtle);color:var(--text-primary)}
+.qr-table tr:hover td{background:var(--brand-wash)}
+.qr-pass{color:var(--success);font-weight:600}
+.qr-fail{color:var(--danger);font-weight:600}
+
+/* --- Field Mapping Area --- */
+.field-mapping-wrap{position:relative;min-height:260px;margin-top:12px}
+.fm-columns{display:flex;gap:24px;align-items:flex-start}
+.fm-column{flex:1;background:var(--surface-subtle);border-radius:var(--radius-sm);border:1px solid var(--border-subtle);padding:8px}
+.fm-column-title{font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.fm-field{display:flex;align-items:center;gap:6px;padding:5px 8px;margin-bottom:3px;border-radius:4px;font-size:11px;cursor:grab;border:1px solid var(--border-subtle);background:var(--surface-raised);transition:all 0.15s;user-select:none}
+.fm-field:hover{border-color:var(--brand);box-shadow:var(--shadow-xs)}
+.fm-field.selected{border-color:var(--brand);background:var(--brand-subtle);box-shadow:0 0 0 1.5px var(--brand)}
+.fm-field .ff-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fm-field .ff-code{font-size:10px;color:var(--text-tertiary)}
+.fm-arrow{display:flex;align-items:center;justify-content:center;width:24px;flex-shrink:0;color:var(--text-tertiary);font-size:16px}
+.fm-mapping{display:flex;align-items:center;gap:6px;padding:4px 8px;margin-top:4px;border-radius:4px;background:var(--brand-wash);border:1px dashed var(--brand);font-size:10px}
+.fm-mapping .fm-rm{color:var(--danger);cursor:pointer;font-size:12px}
+.fm-empty{text-align:center;padding:40px 16px;color:var(--text-tertiary);font-size:12px}
+.fm-empty i{font-size:2rem;color:var(--border-subtle);margin-bottom:8px;display:block}
+
+/* --- Inline Section within config panel --- */
+.config-section{margin-bottom:12px}
+.config-section .cs-title{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.config-section .cs-title .cs-count{font-size:10px;padding:0 6px;border-radius:var(--radius-full);background:var(--brand-subtle);color:var(--brand)}
+
+/* --- Anomaly Intercept Toggle --- */
+.anomaly-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:var(--radius-sm);background:var(--surface-subtle);margin-top:8px;font-size:12px}
+.anomaly-bar .ab-toggle{position:relative;width:40px;height:22px;border-radius:11px;cursor:pointer;transition:background 0.2s;border:none}
+.anomaly-bar .ab-toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;box-shadow:var(--shadow-xs)}
+.anomaly-bar .ab-toggle.on{background:var(--danger)}
+.anomaly-bar .ab-toggle.on::after{transform:translateX(18px)}
+.anomaly-bar .ab-toggle.off{background:var(--border-strong)}
+.anomaly-bar .ab-toggle.off::after{transform:translateX(0)}
+
+/* --- Mapping list below arrows --- */
+.mapping-list{margin-top:8px}
+.mapping-item{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-radius:4px;font-size:10px;background:var(--surface-subtle);margin-bottom:2px;border:1px solid var(--border-subtle)}
+.mapping-item:hover{border-color:var(--brand)}
+.mapping-item .mi-del{color:var(--text-tertiary);cursor:pointer;font-size:10px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.mapping-item .mi-del:hover{background:var(--danger-subtle);color:var(--danger)}
+
+/* --- Toast --- */
+.ds-toast{position:fixed;top:64px;right:20px;z-index:9999;background:var(--surface-raised);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 16px;box-shadow:var(--shadow-lg);display:none;align-items:center;gap:8px;font-size:12px;animation:slideInRight 0.25s var(--ease-out)}
+.ds-toast.show{display:flex}
+@keyframes slideInRight{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.ds-toast i{font-size:14px}
+.ds-toast.success i{color:var(--success)}
+.ds-toast.info i{color:var(--brand)}
+.ds-toast.warning i{color:var(--warning)}
+
+/* --- Tab toggles for right panel --- */
+.rp-tabs{display:flex;gap:0;margin-bottom:10px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border-default)}
+.rp-tab{flex:1;padding:7px 0;font-size:11px;text-align:center;cursor:pointer;border:none;background:var(--surface-subtle);color:var(--text-secondary);transition:all 0.15s;font-weight:500}
+.rp-tab:hover{background:var(--surface-hover)}
+.rp-tab.active{background:var(--brand);color:var(--text-inverse)}
+
+/* --- Stat card for this page --- */
+.ds-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:1100px){.ds-stat-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+<title>领域服务数据标准接入 — 业务中台装配环境</title>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1"><div class="flex items-center gap-2 mr-6"><div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div><span class="text-white font-semibold text-base">业务中台装配环境</span></div>
+    <nav class="flex items-center gap-0.5"><a href="../index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>首页</span></a><a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a><a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a><a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a><a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a><a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a><a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a></nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm"><div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div><div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div><div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div><span class="text-xs">张架构</span></div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+<main class="flex-1 overflow-y-auto">
+  <div id="breadcrumb"></div>
+  <!-- ====== Top Nav Bar ====== -->
+  <div class="flex items-center justify-between px-4 py-1.5 border-b" style="border-color:var(--border-subtle);background:var(--surface-raised)">
+    <a href="workspace.html" class="text-xs" style="color:var(--brand)"><i class="fa-solid fa-arrow-left"></i> 返回工作台</a>
+    <div class="flex items-center gap-2 text-xs">
+      <a href="components.html" style="color:var(--text-tertiary)">← 上一步：组件编排</a>
+      <span style="color:var(--border-default)">|</span>
+      <a href="rules.html" style="color:var(--brand);font-weight:500">下一步：编排规则配置 →</a>
+    </div>
+  </div>
+  <!-- ====== Page Header ====== -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Domain Data Standard Access</div>
+      <h2>领域服务数据标准接入</h2>
+      <div class="subtitle">按业务域维度引用统一数据模型，自动校验数据质量，可视化配置数据流转映射</div>
+    </div>
+  </div>
+  <!-- ====== Page Content ====== -->
+  <div class="page-section anim-fade-up">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-xs font-medium" style="color:var(--text-secondary)">当前需求：</span>
+      <div id="demandBar"></div>
+    </div>
+    <!-- ====== Top Stat Cards ====== -->
+    <div class="ds-stat-grid" id="dsStatGrid">
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">数据模型总数</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statTotalModels">0</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-database"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">已引用</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statReferenced">0</div></div><div class="stat-icon-wrap green"><i class="fa-solid fa-link"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">质量通过率</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statQualityRate">0%</div></div><div class="stat-icon-wrap amber"><i class="fa-solid fa-check-circle"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">异常拦截</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statIntercepted">0</div></div><div class="stat-icon-wrap danger"><i class="fa-solid fa-shield"></i></div></div></div>
+    </div>
+    <!-- ====== 2-Column Layout ====== -->
+    <div class="ds-layout">
+      <!-- ====== LEFT: Domain Browser (55%) ====== -->
+      <div class="ds-browser">
+        <div class="card">
+          <div class="p-4">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-semibold" style="color:var(--text-primary)"><i class="fa-solid fa-sitemap mr-2" style="color:var(--brand)"></i>领域数据模型浏览</h4>
+              <span class="text-xs" style="color:var(--text-tertiary)" id="modelCountLabel">共 0 个模型</span>
+            </div>
+            <!-- Domain Tabs -->
+            <div class="domain-tabs" id="domainTabs"></div>
+            <!-- Model List -->
+            <div id="modelListContainer" style="max-height:var(--ds-browser-h);overflow-y:auto"></div>
+          </div>
+        </div>
+      </div>
+      <!-- ====== RIGHT: Config Panel (45%) ====== -->
+      <div class="ds-config-panel">
+        <!-- Tab switcher -->
+        <div class="rp-tabs" id="rpTabBar">
+          <button class="rp-tab active" data-tab="ref" onclick="switchRightPanel('ref')"><i class="fa-solid fa-link mr-1"></i>已引用模型</button>
+          <button class="rp-tab" data-tab="quality" onclick="switchRightPanel('quality')"><i class="fa-solid fa-check-double mr-1"></i>质量校验</button>
+          <button class="rp-tab" data-tab="mapping" onclick="switchRightPanel('mapping')"><i class="fa-solid fa-arrow-right-arrow-left mr-1"></i>字段映射</button>
+        </div>
+        <!-- Tab: 已引用模型 -->
+        <div class="rp-content" id="rpRef">
+          <div class="card">
+            <div class="p-4">
+              <div class="config-section">
+                <div class="cs-title"><i class="fa-solid fa-link" style="color:var(--brand)"></i>已引用模型 <span class="cs-count" id="refCountBadge">0</span></div>
+                <div id="referencedModelsContainer"></div>
+                <div class="mt-3"><button class="btn btn-primary btn-sm w-full" onclick="toast('引用配置已打开，跳转至装配页面','info')"><i class="fa-solid fa-gear mr-2"></i>引用配置</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Tab: 质量校验 -->
+        <div class="rp-content" id="rpQuality" style="display:none">
+          <div class="quality-section">
+            <div class="quality-header">
+              <span class="text-sm font-semibold" style="color:var(--text-primary)"><i class="fa-solid fa-check-double mr-2" style="color:var(--brand)"></i>数据质量校验</span>
+              <button class="btn btn-primary btn-sm" onclick="runQualityCheck()"><i class="fa-solid fa-play mr-1"></i>执行校验</button>
+            </div>
+            <div class="quality-body">
+              <div class="text-xs font-semibold mb-2" style="color:var(--text-secondary)">校验规则配置</div>
+              <div id="qualityRulesContainer"></div>
+              <div class="anomaly-bar">
+                <span><i class="fa-solid fa-shield mr-2" style="color:var(--danger)"></i>异常拦截</span>
+                <button class="ab-toggle off" id="anomalyToggle" onclick="toggleAnomalyIntercept()"></button>
+              </div>
+              <div class="mt-3">
+                <div class="text-xs font-semibold mb-1" style="color:var(--text-secondary)">校验结果</div>
+                <div id="qualityResultsContainer"><div class="fm-empty"><i class="fa-solid fa-hourglass-half"></i>尚未执行校验，点击「执行校验」开始</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Tab: 字段映射 -->
+        <div class="rp-content" id="rpMapping" style="display:none">
+          <div class="card">
+            <div class="p-4">
+              <div class="config-section">
+                <div class="cs-title"><i class="fa-solid fa-arrow-right-arrow-left" style="color:var(--brand)"></i>数据流转映射配置</div>
+                <div class="field-mapping-wrap" id="fieldMappingArea">
+                  <div class="fm-empty" id="mappingEmptyState"><i class="fa-solid fa-diagram-project"></i>请先在左侧引用数据模型后，在此配置字段映射关系</div>
+                  <div class="fm-columns" id="mappingColumns" style="display:none">
+                    <div class="fm-column">
+                      <div class="fm-column-title"><i class="fa-solid fa-arrow-right-to-bracket" style="color:var(--brand)"></i>源字段</div>
+                      <div id="sourceFieldsList"></div>
+                    </div>
+                    <div class="fm-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                    <div class="fm-column">
+                      <div class="fm-column-title"><i class="fa-solid fa-arrow-right-from-bracket" style="color:var(--success)"></i>目标字段</div>
+                      <div id="targetFieldsList"></div>
+                    </div>
+                  </div>
+                  <div id="mappingListContainer" class="mapping-list"></div>
+                </div>
+                <div class="mt-3 flex gap-2">
+                  <button class="btn btn-outline btn-sm flex-1" onclick="clearMapping()"><i class="fa-solid fa-eraser mr-1"></i>清除映射</button>
+                  <button class="btn btn-primary btn-sm flex-1" onclick="saveMapping()"><i class="fa-solid fa-floppy-disk mr-1"></i>保存映射</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ====== Toast ====== -->
+<div class="ds-toast" id="dsToast"></div>
+
+<!-- ====== Scripts ====== -->
+<script src="../_shared/models/enums.js"></script>
+<script src="../_shared/models/utils.js"></script>
+<script src="../_shared/scaffold.js"></script>
+
+<script>
+// ====================================================================
+// ALL_10_DOMAINS
+// ====================================================================
+var ALL_DOMAINS = ['油气新能源','炼化新材料','销售','天然气销售','海外油气','国际贸易','油田技术服务','工程建设','装备制造','运输物流'];
+
+var DOMAIN_ICONS = {
+  '油气新能源':'fa-oil-well',
+  '炼化新材料':'fa-flask',
+  '销售':'fa-chart-line',
+  '天然气销售':'fa-fire',
+  '海外油气':'fa-globe',
+  '国际贸易':'fa-ship',
+  '油田技术服务':'fa-wrench',
+  '工程建设':'fa-hard-hat',
+  '装备制造':'fa-industry',
+  '运输物流':'fa-truck'
+};
+
+var DOMAIN_COLORS = {
+  '油气新能源':'var(--brand)',
+  '炼化新材料':'oklch(55% 0.16 148)',
+  '销售':'var(--amber)',
+  '天然气销售':'oklch(55% 0.12 240)',
+  '海外油气':'oklch(48% 0.14 290)',
+  '国际贸易':'oklch(52% 0.18 22)',
+  '油田技术服务':'var(--brand)',
+  '工程建设':'oklch(55% 0.16 148)',
+  '装备制造':'var(--amber)',
+  '运输物流':'oklch(55% 0.12 240)'
+};
+
+// ====================================================================
+// DATA: 20+ Data Models across 10 domains
+// ====================================================================
+var dataModelSource = [
+  // 油气新能源 (3 models)
+  {id:'DM001',name:'油井生产数据模型',domain:'油气新能源',type:'采集模型',
+    fields:[{name:'井口压力',code:'wellhead_pressure',type:'float',length:8,precision:2,required:true,constraint:'0~100MPa'},
+      {name:'套压',code:'casing_pressure',type:'float',length:8,precision:2,required:true,constraint:'0~50MPa'},
+      {name:'冲程次数',code:'stroke_count',type:'integer',length:4,precision:0,required:false,constraint:'0~9999次/天'},
+      {name:'油温',code:'oil_temp',type:'float',length:6,precision:1,required:false,constraint:'-20~150°C'},
+      {name:'产量',code:'daily_production',type:'float',length:10,precision:2,required:true,constraint:'0~9999.99吨'}]},
+  {id:'DM002',name:'压力传感器数据模型',domain:'油气新能源',type:'采集模型',
+    fields:[{name:'设备编码',code:'device_code',type:'string',length:20,precision:0,required:true,constraint:'字母数字组合'},
+      {name:'测量值',code:'measure_value',type:'float',length:8,precision:2,required:true,constraint:'0~200MPa'},
+      {name:'采集时间',code:'collect_time',type:'datetime',length:8,precision:0,required:true,constraint:'yyyy-MM-dd HH:mm:ss'},
+      {name:'传感器状态',code:'sensor_status',type:'string',length:10,precision:0,required:false,constraint:'正常/异常/离线'}]},
+  {id:'DM003',name:'振动监测数据模型',domain:'油气新能源',type:'监测模型',
+    fields:[{name:'设备ID',code:'device_id',type:'string',length:16,precision:0,required:true,constraint:'主键编码'},
+      {name:'加速度',code:'acceleration',type:'float',length:8,precision:3,required:true,constraint:'0~100 m/s²'},
+      {name:'速度',code:'velocity',type:'float',length:8,precision:3,required:true,constraint:'0~50 mm/s'},
+      {name:'位移',code:'displacement',type:'float',length:8,precision:3,required:false,constraint:'0~500 μm'}]},
+
+  // 炼化新材料 (2)
+  {id:'DM004',name:'炼化装置运行模型',domain:'炼化新材料',type:'运行模型',
+    fields:[{name:'装置编号',code:'unit_code',type:'string',length:16,precision:0,required:true,constraint:'字母数字编码'},
+      {name:'进料量',code:'feed_rate',type:'float',length:10,precision:2,required:true,constraint:'0~999999.99吨/天'},
+      {name:'出料温度',code:'outlet_temp',type:'float',length:6,precision:1,required:true,constraint:'0~800°C'},
+      {name:'压力',code:'pressure',type:'float',length:8,precision:2,required:false,constraint:'0~50MPa'}]},
+  {id:'DM005',name:'物料平衡数据模型',domain:'炼化新材料',type:'统计模型',
+    fields:[{name:'物料编码',code:'material_code',type:'string',length:20,precision:0,required:true,constraint:'标准物料编码'},
+      {name:'入量',code:'input_qty',type:'float',length:12,precision:2,required:true,constraint:'≥0'},
+      {name:'出量',code:'output_qty',type:'float',length:12,precision:2,required:true,constraint:'≥0'},
+      {name:'损耗率',code:'loss_rate',type:'float',length:6,precision:2,required:false,constraint:'0~100%'}]},
+
+  // 销售 (2)
+  {id:'DM006',name:'油品销售数据模型',domain:'销售',type:'业务模型',
+    fields:[{name:'品号',code:'product_code',type:'string',length:10,precision:0,required:true,constraint:'标准品号'},
+      {name:'销量',code:'sales_qty',type:'float',length:10,precision:2,required:true,constraint:'≥0吨'},
+      {name:'单价',code:'unit_price',type:'float',length:8,precision:2,required:true,constraint:'≥0元/吨'},
+      {name:'销售日期',code:'sales_date',type:'date',length:4,precision:0,required:true,constraint:'yyyy-MM-dd'}]},
+  {id:'DM007',name:'客户信息数据模型',domain:'销售',type:'主数据模型',
+    fields:[{name:'客户编码',code:'customer_code',type:'string',length:16,precision:0,required:true,constraint:'唯一编码'},
+      {name:'客户名称',code:'customer_name',type:'string',length:60,precision:0,required:true,constraint:'1~60字符'},
+      {name:'联系人',code:'contact',type:'string',length:30,precision:0,required:false,constraint:'1~30字符'},
+      {name:'信用额度',code:'credit_limit',type:'float',length:12,precision:2,required:false,constraint:'≥0元'}]},
+
+  // 天然气销售 (2)
+  {id:'DM008',name:'天然气计量数据模型',domain:'天然气销售',type:'计量模型',
+    fields:[{name:'气表编号',code:'meter_code',type:'string',length:20,precision:0,required:true,constraint:'设备编码'},
+      {name:'累积用量',code:'accum_volume',type:'float',length:12,precision:2,required:true,constraint:'≥0 m³'},
+      {name:'瞬时流量',code:'instant_flow',type:'float',length:8,precision:2,required:true,constraint:'0~99999 m³/h'},
+      {name:'气质热值',code:'calorific_value',type:'float',length:6,precision:1,required:false,constraint:'30~45 MJ/m³'}]},
+  {id:'DM009',name:'管网节点数据模型',domain:'天然气销售',type:'拓扑模型',
+    fields:[{name:'节点编码',code:'node_code',type:'string',length:16,precision:0,required:true,constraint:'唯一节点编码'},
+      {name:'节点压力',code:'node_pressure',type:'float',length:8,precision:2,required:true,constraint:'0~10MPa'},
+      {name:'节点流量',code:'node_flow',type:'float',length:10,precision:2,required:true,constraint:'≥0 m³/h'},
+      {name:'阀门状态',code:'valve_status',type:'string',length:4,precision:0,required:false,constraint:'开/关'}]},
+
+  // 海外油气 (2)
+  {id:'DM010',name:'海外产量数据模型',domain:'海外油气',type:'生产模型',
+    fields:[{name:'区块编码',code:'block_code',type:'string',length:16,precision:0,required:true,constraint:'区块编码标准'},
+      {name:'日产油量',code:'daily_oil',type:'float',length:12,precision:2,required:true,constraint:'≥0桶'},
+      {name:'日产气量',code:'daily_gas',type:'float',length:12,precision:2,required:true,constraint:'≥0千立方英尺'},
+      {name:'含水率',code:'water_cut',type:'float',length:6,precision:2,required:false,constraint:'0~100%'}]},
+  {id:'DM011',name:'海外项目进度模型',domain:'海外油气',type:'项目模型',
+    fields:[{name:'项目编码',code:'project_code',type:'string',length:16,precision:0,required:true,constraint:'项目编码'},
+      {name:'计划进度',code:'plan_progress',type:'float',length:6,precision:1,required:true,constraint:'0~100%'},
+      {name:'实际进度',code:'actual_progress',type:'float',length:6,precision:1,required:true,constraint:'0~100%'},
+      {name:'偏差天数',code:'deviation_days',type:'integer',length:4,precision:0,required:false,constraint:'-999~999天'}]},
+
+  // 国际贸易 (2)
+  {id:'DM012',name:'贸易合同数据模型',domain:'国际贸易',type:'合同模型',
+    fields:[{name:'合同编号',code:'contract_code',type:'string',length:24,precision:0,required:true,constraint:'标准合同编号'},
+      {name:'贸易条款',code:'trade_terms',type:'string',length:200,precision:0,required:true,constraint:'INCOTERMS 2024'},
+      {name:'合同金额',code:'contract_amount',type:'float',length:14,precision:2,required:true,constraint:'≥0 USD'},
+      {name:'交货日期',code:'delivery_date',type:'date',length:4,precision:0,required:true,constraint:'yyyy-MM-dd'},
+      {name:'提单号',code:'billoflading',type:'string',length:20,precision:0,required:false,constraint:'海运提单号'}]},
+  {id:'DM013',name:'原油进口数据模型',domain:'国际贸易',type:'贸易模型',
+    fields:[{name:'原产地',code:'origin_country',type:'string',length:30,precision:0,required:true,constraint:'国家名称'},
+      {name:'API度',code:'api_gravity',type:'float',length:6,precision:1,required:true,constraint:'10~60°API'},
+      {name:'硫含量',code:'sulfur_content',type:'float',length:6,precision:2,required:true,constraint:'0~5%'},
+      {name:'到港量',code:'arrival_qty',type:'float',length:12,precision:2,required:true,constraint:'≥0吨'},
+      {name:'到港日期',code:'arrival_date',type:'date',length:4,precision:0,required:true,constraint:'yyyy-MM-dd'}]},
+
+  // 油田技术服务 (2)
+  {id:'DM014',name:'维保工单数据模型',domain:'油田技术服务',type:'业务模型',
+    fields:[{name:'工单编号',code:'work_order_id',type:'string',length:20,precision:0,required:true,constraint:'WO+日期+序列'},
+      {name:'设备编码',code:'equip_code',type:'string',length:16,precision:0,required:true,constraint:'设备资产编码'},
+      {name:'故障类型',code:'fault_type',type:'string',length:30,precision:0,required:true,constraint:'故障分类编码'},
+      {name:'维修工时',code:'repair_hours',type:'float',length:6,precision:1,required:false,constraint:'0~999.9小时'}]},
+  {id:'DM015',name:'作业现场安全数据模型',domain:'油田技术服务',type:'安全模型',
+    fields:[{name:'作业票编号',code:'permit_id',type:'string',length:20,precision:0,required:true,constraint:'PTW编码'},
+      {name:'作业类型',code:'work_type',type:'string',length:20,precision:0,required:true,constraint:'动火/受限空间/高空'},
+      {name:'风险等级',code:'risk_level',type:'string',length:6,precision:0,required:true,constraint:'A/B/C/D'},
+      {name:'监护人',code:'guardian',type:'string',length:16,precision:0,required:true,constraint:'人员姓名'}]},
+
+  // 工程建设 (2)
+  {id:'DM016',name:'工程进度数据模型',domain:'工程建设',type:'进度模型',
+    fields:[{name:'项目编号',code:'project_id',type:'string',length:16,precision:0,required:true,constraint:'项目编码'},
+      {name:'里程碑',code:'milestone',type:'string',length:40,precision:0,required:true,constraint:'里程碑名称'},
+      {name:'计划完成',code:'plan_date',type:'date',length:4,precision:0,required:true,constraint:'yyyy-MM-dd'},
+      {name:'实际完成',code:'actual_date',type:'date',length:4,precision:0,required:false,constraint:'yyyy-MM-dd'},
+      {name:'完成率',code:'completion_rate',type:'float',length:6,precision:1,required:true,constraint:'0~100%'}]},
+  {id:'DM017',name:'施工安全检查数据模型',domain:'工程建设',type:'检查模型',
+    fields:[{name:'检查编号',code:'inspect_id',type:'string',length:20,precision:0,required:true,constraint:'INS+日期+序列'},
+      {name:'检查项',code:'inspect_item',type:'string',length:50,precision:0,required:true,constraint:'检查项名称'},
+      {name:'检查结果',code:'inspect_result',type:'string',length:6,precision:0,required:true,constraint:'合格/不合格/待整改'},
+      {name:'整改期限',code:'rectify_deadline',type:'date',length:4,precision:0,required:false,constraint:'yyyy-MM-dd'}]},
+
+  // 装备制造 (2)
+  {id:'DM018',name:'设备BOM数据模型',domain:'装备制造',type:'结构模型',
+    fields:[{name:'物料编码',code:'material_code',type:'string',length:20,precision:0,required:true,constraint:'标准物料编码'},
+      {name:'物料名称',code:'material_name',type:'string',length:60,precision:0,required:true,constraint:'1~60字符'},
+      {name:'层级',code:'bom_level',type:'integer',length:2,precision:0,required:true,constraint:'0~99'},
+      {name:'数量',code:'quantity',type:'float',length:8,precision:2,required:true,constraint:'≥0'},
+      {name:'单位',code:'unit',type:'string',length:8,precision:0,required:true,constraint:'件/套/个'}]},
+  {id:'DM019',name:'设备出厂检验数据模型',domain:'装备制造',type:'质检模型',
+    fields:[{name:'设备编号',code:'equip_serial',type:'string',length:20,precision:0,required:true,constraint:'出厂编码'},
+      {name:'检验项目',code:'test_item',type:'string',length:40,precision:0,required:true,constraint:'检验项名称'},
+      {name:'标准值',code:'standard_val',type:'float',length:8,precision:2,required:true,constraint:'标准范围'},
+      {name:'实测值',code:'measured_val',type:'float',length:8,precision:2,required:true,constraint:'实测数据'},
+      {name:'是否合格',code:'is_pass',type:'boolean',length:1,precision:0,required:true,constraint:'true/false'}]},
+
+  // 运输物流 (2)
+  {id:'DM020',name:'物流配送数据模型',domain:'运输物流',type:'物流模型',
+    fields:[{name:'运单编号',code:'waybill_no',type:'string',length:20,precision:0,required:true,constraint:'运单编码'},
+      {name:'出发地',code:'origin',type:'string',length:50,precision:0,required:true,constraint:'地点名称'},
+      {name:'目的地',code:'destination',type:'string',length:50,precision:0,required:true,constraint:'地点名称'},
+      {name:'配送量',code:'delivery_qty',type:'float',length:10,precision:2,required:true,constraint:'≥0吨'},
+      {name:'预计到达',code:'eta',type:'datetime',length:8,precision:0,required:false,constraint:'yyyy-MM-dd HH:mm'}]},
+  {id:'DM021',name:'车辆状态数据模型',domain:'运输物流',type:'监控模型',
+    fields:[{name:'车牌号',code:'plate_no',type:'string',length:10,precision:0,required:true,constraint:'标准车牌号'},
+      {name:'GPS经度',code:'gps_lon',type:'float',length:9,precision:6,required:true,constraint:'73~136°'},
+      {name:'GPS纬度',code:'gps_lat',type:'float',length:9,precision:6,required:true,constraint:'3~54°'},
+      {name:'车速',code:'speed',type:'float',length:6,precision:1,required:false,constraint:'0~200 km/h'},
+      {name:'油量',code:'fuel_level',type:'float',length:5,precision:1,required:false,constraint:'0~100%'}]}
+];
+
+// ====================================================================
+// DATA: Quality Rules (5)
+// ====================================================================
+var qualityRules = [
+  {id:'QR001',name:'空值检查',severity:'error',enabled:true,desc:'检查必填字段是否为NULL或空字符串'},
+  {id:'QR002',name:'范围检查',severity:'error',enabled:true,desc:'检查数值字段是否在约束范围内'},
+  {id:'QR003',name:'格式检查',severity:'warning',enabled:true,desc:'检查字符串字段是否符合格式要求（编码、日期等）'},
+  {id:'QR004',name:'唯一性检查',severity:'warning',enabled:true,desc:'检查主键或唯一编码字段是否重复'},
+  {id:'QR005',name:'精度检查',severity:'info',enabled:true,desc:'检查浮点数字段精度是否超过定义位数'}
+];
+
+// ====================================================================
+// STATE
+// ====================================================================
+var selectedDomain = ALL_DOMAINS[0];
+var referencedModels = [];
+var qualityResults = [];
+var mappings = []; // [{sourceField, targetField, modelId}]
+var selectedSourceField = null;
+var selectedTargetField = null;
+var anomalyInterceptEnabled = false;
+
+// ====================================================================
+// INIT
+// ====================================================================
+document.addEventListener('DOMContentLoaded', function() {
+  init();
+});
+
+function init() {
+  renderDomainTabs();
+  renderModels();
+  updateStats();
+  renderReferencedModels();
+  renderQualityRules();
+  renderQualityResults();
+  initFieldMapping();
+  if(Scaffold.isScenarioActive()) selectDomain('油气新能源');
+  Scaffold.renderDemandBar();
+  Scaffold.markStepInProgress('data-service');
+}
+
+// ====================================================================
+// DOMAIN TABS
+// ====================================================================
+function renderDomainTabs() {
+  var container = document.getElementById('domainTabs');
+  var html = '';
+  ALL_DOMAINS.forEach(function(d) {
+    var active = d === selectedDomain ? ' active' : '';
+    html += '<button class="domain-tab' + active + '" onclick="selectDomain(\'' + d + '\')">' + d + '</button>';
+  });
+  container.innerHTML = html;
+}
+
+function selectDomain(domain) {
+  selectedDomain = domain;
+  renderDomainTabs();
+  renderModels();
+}
+
+// ====================================================================
+// MODEL BROWSER
+// ====================================================================
+function renderModels() {
+  var models = dataModelSource.filter(function(m) { return m.domain === selectedDomain; });
+  var container = document.getElementById('modelListContainer');
+  document.getElementById('modelCountLabel').textContent = '共 ' + models.length + ' 个模型';
+  if (models.length === 0) {
+    container.innerHTML = '<div class="fm-empty"><i class="fa-solid fa-inbox"></i>该领域暂无数据模型</div>';
+    return;
+  }
+  var html = '';
+  models.forEach(function(m) {
+    var fieldsHtml = m.fields.map(function(f) { return f.name; }).join(' · ');
+    var refBtn = isModelReferenced(m.id)
+      ? '<button class="btn btn-sm" style="background:var(--success-subtle);color:var(--success);border:none;cursor:default"><i class="fa-solid fa-check mr-1"></i>已引用</button>'
+      : '<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();toggleReference(\'' + m.id + '\')"><i class="fa-solid fa-plus mr-1"></i>引用</button>';
+    var typeColor = m.type === '采集模型' || m.type === '监测模型' ? 'var(--brand)' :
+                    m.type === '业务模型' || m.type === '主数据模型' || m.type === '合同模型' || m.type === '贸易模型' || m.type === '物流模型' || m.type === '安全模型' || m.type === '检查模型' ? 'var(--amber)' :
+                    m.type === '运行模型' || m.type === '统计模型' ? 'var(--success)' :
+                    m.type === '计量模型' || m.type === '拓扑模型' ? 'var(--warning)' : 'var(--info)';
+    html += '<div class="ds-model-card" onclick="showModelDetail(\'' + m.id + '\')">';
+    html += '<div class="mc-icon" style="background:' + (DOMAIN_COLORS[m.domain] || 'var(--brand)') + '"><i class="fa-solid ' + (DOMAIN_ICONS[m.domain] || 'fa-database') + '"></i></div>';
+    html += '<div class="mc-info">';
+    html += '<div class="mc-name">' + m.name + '</div>';
+    html += '<div class="mc-meta"><span class="badge" style="background:' + typeColor + '20;color:' + typeColor + ';font-size:9px">' + m.type + '</span> <span>' + m.fields.length + ' 字段</span></div>';
+    html += '<div class="mc-fields">' + fieldsHtml.substring(0, 80) + (fieldsHtml.length > 80 ? '...' : '') + '</div>';
+    html += '</div>';
+    html += '<div class="mc-action">' + refBtn + '</div>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+// ====================================================================
+// MODEL REFERENCE TOGGLE
+// ====================================================================
+function toggleReference(modelId) {
+  var model = dataModelSource.find(function(m) { return m.id === modelId; });
+  if (!model) return;
+  var idx = referencedModels.findIndex(function(r) { return r.id === modelId; });
+  if (idx >= 0) {
+    referencedModels.splice(idx, 1);
+    // Also remove associated mappings
+    mappings = mappings.filter(function(m) { return m.modelId !== modelId; });
+    toast('已取消引用：' + model.name, 'info');
+  } else {
+    referencedModels.push(JSON.parse(JSON.stringify(model)));
+    toast('已引用数据模型：' + model.name, 'success');
+  }
+  updateStats();
+  renderModels();
+  renderReferencedModels();
+  initFieldMapping();
+}
+
+function isModelReferenced(modelId) {
+  return referencedModels.some(function(r) { return r.id === modelId; });
+}
+
+// ====================================================================
+// REFERENCED MODELS LIST (Right Panel Tab 1)
+// ====================================================================
+function renderReferencedModels() {
+  var container = document.getElementById('referencedModelsContainer');
+  document.getElementById('refCountBadge').textContent = referencedModels.length;
+  if (referencedModels.length === 0) {
+    container.innerHTML = '<div class="fm-empty"><i class="fa-solid fa-link-slash"></i>尚未引用任何数据模型</div>';
+    return;
+  }
+  var html = '';
+  referencedModels.forEach(function(m) {
+    html += '<div class="ref-model-item">';
+    html += '<div class="rmi-header"><span class="rmi-name"><i class="fa-solid fa-database mr-1" style="color:var(--brand)"></i>' + m.name + '</span><span class="rmi-domain">' + m.domain + '</span></div>';
+    // Constraints display
+    var constraintsHtml = '';
+    m.fields.forEach(function(f) {
+      if (f.constraint) {
+        constraintsHtml += '<span class="rmi-constraint">' + f.name + ': ' + f.constraint + '</span>';
+      }
+    });
+    if (constraintsHtml) {
+      html += '<div class="rmi-constraints">' + constraintsHtml + '</div>';
+    }
+    // Fields mini list
+    html += '<div class="rmi-fields">';
+    m.fields.forEach(function(f) {
+      var reqStar = f.required ? '<span style="color:var(--danger)">*</span>' : '';
+      html += '<div class="rmi-field"><span>' + reqStar + ' ' + f.name + ' (' + f.code + ')</span><span style="color:var(--text-tertiary)">' + f.type + '(' + f.length + ',' + f.precision + ')</span></div>';
+    });
+    html += '</div>';
+    html += '<div class="mt-2 flex gap-2"><button class="btn btn-outline btn-sm flex-1" onclick="toast(\'查看模型详情: ' + m.name + '\',\'info\')"><i class="fa-solid fa-eye mr-1"></i>详情</button><button class="btn btn-danger-text btn-sm" onclick="toggleReference(\'' + m.id + '\')"><i class="fa-solid fa-xmark mr-1"></i>移除</button></div>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+// ====================================================================
+// QUALITY CHECK (Right Panel Tab 2)
+// ====================================================================
+function renderQualityRules() {
+  var container = document.getElementById('qualityRulesContainer');
+  var html = '';
+  qualityRules.forEach(function(r) {
+    var severityColor = r.severity === 'error' ? 'var(--danger)' : r.severity === 'warning' ? 'var(--warning)' : 'var(--info)';
+    var severityBg = r.severity === 'error' ? 'var(--danger-subtle)' : r.severity === 'warning' ? 'var(--warning-subtle)' : 'var(--info-subtle)';
+    var toggleClass = r.enabled ? 'on' : 'off';
+    html += '<div class="quality-rule-row">';
+    html += '<span class="qr-severity" style="background:' + severityBg + ';color:' + severityColor + '">' + r.severity + '</span>';
+    html += '<span class="qr-name">' + r.name + '</span>';
+    html += '<span class="text-xs" style="color:var(--text-tertiary)">' + r.desc + '</span>';
+    html += '<button class="qr-toggle ' + toggleClass + '" onclick="toggleQualityRule(\'' + r.id + '\')"></button>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function toggleQualityRule(ruleId) {
+  var rule = qualityRules.find(function(r) { return r.id === ruleId; });
+  if (!rule) return;
+  rule.enabled = !rule.enabled;
+  renderQualityRules();
+}
+
+function runQualityCheck() {
+  var enabledRules = qualityRules.filter(function(r) { return r.enabled; });
+  if (enabledRules.length === 0) {
+    toast('请至少启用一条校验规则', 'warning');
+    return;
+  }
+  if (referencedModels.length === 0) {
+    toast('请先引用数据模型', 'warning');
+    return;
+  }
+  qualityResults = [];
+  // Simulate quality check
+  enabledRules.forEach(function(rule) {
+    var total = 0;
+    var pass = 0;
+    var fail = 0;
+    referencedModels.forEach(function(m) {
+      m.fields.forEach(function(f) {
+        total++;
+        // Simulate: 80% pass rate for most rules
+        var isPass = Math.random() > 0.2;
+        if (isPass) { pass++; } else { fail++; }
+      });
+    });
+    qualityResults.push({
+      ruleId: rule.id,
+      ruleName: rule.name,
+      severity: rule.severity,
+      total: total,
+      pass: pass,
+      fail: fail,
+      rate: total > 0 ? ((pass / total) * 100).toFixed(1) : 0
+    });
+  });
+  renderQualityResults();
+  updateStats();
+  // Anomaly intercept simulation
+  if (anomalyInterceptEnabled) {
+    var totalFails = qualityResults.reduce(function(sum, r) { return sum + r.fail; }, 0);
+    if (totalFails > 0) {
+      toast('异常拦截已触发！拦截 ' + totalFails + ' 条异常数据', 'warning');
+    }
+  } else {
+    toast('质量校验完成', 'success');
+  }
+}
+
+function renderQualityResults() {
+  var container = document.getElementById('qualityResultsContainer');
+  if (qualityResults.length === 0) {
+    container.innerHTML = '<div class="fm-empty"><i class="fa-solid fa-hourglass-half"></i>尚未执行校验，点击「执行校验」开始</div>';
+    return;
+  }
+  var html = '<table class="qr-table"><thead><tr><th>规则名称</th><th>严重级别</th><th>检查总数</th><th><span class="qr-pass">通过</span></th><th><span class="qr-fail">失败</span></th><th>通过率</th></tr></thead><tbody>';
+  qualityResults.forEach(function(r) {
+    var severityColor = r.severity === 'error' ? 'var(--danger)' : r.severity === 'warning' ? 'var(--warning)' : 'var(--info)';
+    html += '<tr>';
+    html += '<td>' + r.ruleName + '</td>';
+    html += '<td><span style="color:' + severityColor + '">' + r.severity + '</span></td>';
+    html += '<td>' + r.total + '</td>';
+    html += '<td class="qr-pass">' + r.pass + '</td>';
+    html += '<td class="qr-fail">' + r.fail + '</td>';
+    html += '<td>' + r.rate + '%</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function toggleAnomalyIntercept() {
+  anomalyInterceptEnabled = !anomalyInterceptEnabled;
+  var btn = document.getElementById('anomalyToggle');
+  btn.className = 'ab-toggle ' + (anomalyInterceptEnabled ? 'on' : 'off');
+  updateStats();
+  toast('异常拦截已' + (anomalyInterceptEnabled ? '启用' : '停用'), anomalyInterceptEnabled ? 'warning' : 'info');
+}
+
+// ====================================================================
+// FIELD MAPPING (Right Panel Tab 3)
+// ====================================================================
+function initFieldMapping() {
+  var emptyState = document.getElementById('mappingEmptyState');
+  var columns = document.getElementById('mappingColumns');
+  var mappingList = document.getElementById('mappingListContainer');
+
+  if (referencedModels.length === 0) {
+    emptyState.style.display = 'block';
+    columns.style.display = 'none';
+    mappingList.innerHTML = '';
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  columns.style.display = 'flex';
+
+  // Build source fields (from first referenced model as source)
+  var sourceModel = referencedModels[0];
+  var sourceHtml = '';
+  sourceModel.fields.forEach(function(f, i) {
+    var isSelected = selectedSourceField && selectedSourceField.code === f.code && selectedSourceField.modelId === sourceModel.id;
+    var reqStar = f.required ? '<span style="color:var(--danger)">*</span>' : '';
+    sourceHtml += '<div class="fm-field' + (isSelected ? ' selected' : '') + '" onclick="selectMappingField(\'source\',\'' + sourceModel.id + '\',\'' + f.code + '\')">';
+    sourceHtml += '<span class="ff-dot" style="background:var(--brand)"></span>';
+    sourceHtml += '<span>' + reqStar + ' ' + f.name + '</span>';
+    sourceHtml += '<span class="ff-code">' + f.code + '</span>';
+    sourceHtml += '</div>';
+  });
+  document.getElementById('sourceFieldsList').innerHTML = sourceHtml;
+
+  // Build target fields (from second referenced model as target, or first if only one)
+  var targetModel = referencedModels.length > 1 ? referencedModels[1] : referencedModels[0];
+  var targetHtml = '';
+  targetModel.fields.forEach(function(f, i) {
+    var isSelected = selectedTargetField && selectedTargetField.code === f.code && selectedTargetField.modelId === targetModel.id;
+    var reqStar = f.required ? '<span style="color:var(--danger)">*</span>' : '';
+    targetHtml += '<div class="fm-field' + (isSelected ? ' selected' : '') + '" onclick="selectMappingField(\'target\',\'' + targetModel.id + '\',\'' + f.code + '\')">';
+    targetHtml += '<span class="ff-dot" style="background:var(--success)"></span>';
+    targetHtml += '<span>' + reqStar + ' ' + f.name + '</span>';
+    targetHtml += '<span class="ff-code">' + f.code + '</span>';
+    targetHtml += '</div>';
+  });
+  document.getElementById('targetFieldsList').innerHTML = targetHtml;
+
+  // If both source and target are selected, auto-create mapping
+  if (selectedSourceField && selectedTargetField) {
+    var exists = mappings.some(function(m) {
+      return m.sourceCode === selectedSourceField.code && m.targetCode === selectedTargetField.code;
+    });
+    if (!exists) {
+      mappings.push({
+        sourceCode: selectedSourceField.code,
+        sourceName: selectedSourceField.name,
+        targetCode: selectedTargetField.code,
+        targetName: selectedTargetField.name,
+        modelId: sourceModel.id
+      });
+      selectedSourceField = null;
+      selectedTargetField = null;
+      initFieldMapping(); // re-render to clear selection
+      return;
+    }
+  }
+
+  // Render mapping list
+  renderMappingList();
+}
+
+function selectMappingField(role, modelId, code) {
+  var model = dataModelSource.find(function(m) { return m.id === modelId; });
+  if (!model) return;
+  var field = model.fields.find(function(f) { return f.code === code; });
+  if (!field) return;
+
+  if (role === 'source') {
+    selectedSourceField = { modelId: modelId, code: code, name: field.name };
+  } else {
+    selectedTargetField = { modelId: modelId, code: code, name: field.name };
+  }
+
+  // If both selected, auto-create mapping
+  if (selectedSourceField && selectedTargetField) {
+    var exists = mappings.some(function(m) {
+      return m.sourceCode === selectedSourceField.code && m.targetCode === selectedTargetField.code;
+    });
+    if (!exists) {
+      mappings.push({
+        sourceCode: selectedSourceField.code,
+        sourceName: selectedSourceField.name,
+        targetCode: selectedTargetField.code,
+        targetName: selectedTargetField.name,
+        modelId: modelId
+      });
+    }
+    selectedSourceField = null;
+    selectedTargetField = null;
+  }
+
+  initFieldMapping(); // re-render
+}
+
+function renderMappingList() {
+  var container = document.getElementById('mappingListContainer');
+  if (mappings.length === 0) {
+    container.innerHTML = '<div class="text-xs" style="color:var(--text-tertiary);text-align:center;padding:8px">暂无映射关系，点击源字段和目标字段自动创建</div>';
+    return;
+  }
+  var html = '<div class="text-xs font-semibold mb-1" style="color:var(--text-secondary)">已配置映射 (' + mappings.length + ')</div>';
+  mappings.forEach(function(m, idx) {
+    html += '<div class="mapping-item">';
+    html += '<span><span class="fm-field" style="display:inline-flex;padding:1px 6px;margin:0;border-radius:3px;background:var(--brand-subtle);border:none;font-size:10px">' + m.sourceName + '</span>';
+    html += ' <i class="fa-solid fa-arrow-right text-xs" style="color:var(--text-tertiary)"></i> ';
+    html += '<span class="fm-field" style="display:inline-flex;padding:1px 6px;margin:0;border-radius:3px;background:var(--success-subtle);border:none;font-size:10px">' + m.targetName + '</span></span>';
+    html += '<span class="mi-del" onclick="removeMapping(' + idx + ')"><i class="fa-solid fa-xmark"></i></span>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function removeMapping(idx) {
+  mappings.splice(idx, 1);
+  renderMappingList();
+}
+
+function clearMapping() {
+  if (mappings.length === 0) return;
+  if (!confirm('确定清除所有字段映射关系？')) return;
+  mappings = [];
+  selectedSourceField = null;
+  selectedTargetField = null;
+  initFieldMapping();
+  toast('已清除所有映射', 'info');
+}
+
+function saveMapping() {
+  if (mappings.length === 0) {
+    toast('请先配置至少一条字段映射', 'warning');
+    return;
+  }
+  localStorage.setItem('dsFieldMapping', JSON.stringify(mappings));
+  Scaffold.markStepCompleted('data-service');
+  toast('字段映射已保存成功', 'success');
+}
+
+// ====================================================================
+// MODEL DETAIL (Quick Info)
+// ====================================================================
+function showModelDetail(modelId) {
+  var model = dataModelSource.find(function(m) { return m.id === modelId; });
+  if (!model) return;
+  var fieldsStr = model.fields.map(function(f) {
+    return f.name + ' (' + f.code + ') [' + f.type + '(' + f.length + ',' + f.precision + ')]' + (f.required ? ' *' : '') + ' => ' + f.constraint;
+  }).join('\n');
+  var msg = '名称: ' + model.name + '\n领域: ' + model.domain + '\n类型: ' + model.type + '\n字段数: ' + model.fields.length + '\n\n--- 字段详情 ---\n' + fieldsStr;
+  alert(msg);
+}
+
+// ====================================================================
+// RIGHT PANEL TAB SWITCHING
+// ====================================================================
+function switchRightPanel(tab) {
+  var tabs = document.querySelectorAll('.rp-tab');
+  tabs.forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+  });
+  ['rpRef','rpQuality','rpMapping'].forEach(function(id) {
+    document.getElementById(id).style.display = id === ('rp' + tab.charAt(0).toUpperCase() + tab.slice(1)) ? 'block' : 'none';
+  });
+}
+
+// ====================================================================
+// STATS UPDATE
+// ====================================================================
+function updateStats() {
+  var totalModels = dataModelSource.length;
+  var referencedCount = referencedModels.length;
+
+  var totalChecks = qualityResults.reduce(function(s, r) { return s + r.total; }, 0);
+  var totalPass = qualityResults.reduce(function(s, r) { return s + r.pass; }, 0);
+  var qualityRate = totalChecks > 0 ? ((totalPass / totalChecks) * 100).toFixed(1) + '%' : '0%';
+
+  var totalIntercepted = anomalyInterceptEnabled ? qualityResults.reduce(function(s, r) { return s + r.fail; }, 0) : 0;
+
+  document.getElementById('statTotalModels').textContent = totalModels;
+  document.getElementById('statReferenced').textContent = referencedCount;
+  document.getElementById('statQualityRate').textContent = qualityRate;
+  document.getElementById('statIntercepted').textContent = totalIntercepted;
+}
+
+// ====================================================================
+// TOAST
+// ====================================================================
+function toast(msg, type) {
+  var el = document.getElementById('dsToast');
+  if (!el) return;
+  type = type || 'info';
+  var icon = type === 'success' ? 'fa-check-circle' : type === 'warning' ? 'fa-triangle-exclamation' : type === 'info' ? 'fa-circle-info' : 'fa-circle-info';
+  el.innerHTML = '<i class="fa-solid ' + icon + '"></i><span>' + msg + '</span>';
+  el.className = 'ds-toast show ' + type;
+  el.style.display = 'flex';
+  clearTimeout(el._t);
+  el._t = setTimeout(function() {
+    el.classList.remove('show');
+    el.style.display = 'none';
+  }, 3000);
+}
+</script>
+<script>
+Scaffold.init('data-service');
+</script>
+</body>
+</html>

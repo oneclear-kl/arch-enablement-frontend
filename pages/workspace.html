@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+<script src="../_shared/scaffold.js"></script>
+<style>
+/* ===== 领域服务协同工作台 - 自定义样式 ===== */
+*{box-sizing:border-box}
+:root{--step-card-w:165px;--step-card-h:200px;--pipeline-gap:8px}
+
+/* --- Pipeline Flow Container --- */
+.pipeline-flow{display:flex;flex-direction:column;gap:0;padding:4px 0 8px}
+@media(max-width:1200px){.pipeline-arrow{display:none}}
+
+/* --- Pipeline Step Card --- */
+.step-card{
+  width:100%;min-height:56px;
+  background:var(--surface-raised);border:1px solid var(--border-default);border-radius:var(--radius-md);
+  padding:10px 14px;display:flex;flex-direction:row;align-items:center;text-align:left;gap:10px;
+  cursor:pointer;transition:all 0.2s var(--ease-out);position:relative;user-select:none;
+  box-shadow:var(--shadow-sm);
+}
+.step-card:hover{border-color:var(--brand);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.step-card.completed{border-color:var(--success);background:linear-gradient(180deg,var(--surface-raised) 0%,oklch(97% 0.04 148) 100%)}
+.step-card.completed:hover{border-color:var(--success)}
+.step-card.in_progress{border-color:var(--amber);background:linear-gradient(180deg,var(--surface-raised) 0%,oklch(98% 0.04 85) 100%)}
+.step-card.in_progress:hover{border-color:var(--amber)}
+.step-card.hidden{display:none}
+
+/* Step Number Circle */
+.step-num{
+  width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--text-inverse);flex-shrink:0;
+  background:var(--border-strong);transition:all 0.2s var(--ease-out);
+}
+.step-card.completed .step-num{background:var(--success)}
+.step-card.in_progress .step-num{background:var(--amber)}
+.step-card:not(.completed):not(.in_progress) .step-num{background:var(--border-strong)}
+
+/* Step Icon */
+.step-icon{width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-inverse);flex-shrink:0}
+.step-card.completed .step-icon{background:var(--success)}
+.step-card.in_progress .step-icon{background:var(--amber)}
+.step-card:not(.completed):not(.in_progress) .step-icon{background:var(--brand)}
+
+/* Step Name */
+.step-name{font-size:12px;font-weight:600;color:var(--text-primary);line-height:1.3;white-space:nowrap}
+
+/* Step Description */
+.step-desc{font-size:10px;color:var(--text-tertiary);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+
+/* Step Badge */
+.step-badge{
+  display:inline-flex;align-items:center;gap:2px;padding:1px 8px;border-radius:var(--radius-full);
+  font-size:9px;font-weight:600;white-space:nowrap;
+  background:var(--surface-subtle);color:var(--text-tertiary);
+}
+.step-card.completed .step-badge{background:var(--success-subtle);color:var(--success)}
+.step-card.in_progress .step-badge{background:var(--warning-subtle);color:var(--warning)}
+.step-badge i{font-size:8px}
+
+/* Pipeline Arrow (vertical) */
+.pipeline-arrow{display:flex;align-items:center;justify-content:center;padding:2px 0;color:var(--text-tertiary);font-size:11px;height:20px;flex-shrink:0;width:100%}
+.pipeline-arrow i{transition:transform 0.2s}
+.step-card:hover + .pipeline-arrow i{color:var(--brand);transform:scale(1.2)}
+
+/* --- Role Filter Chips --- */
+.role-chips{display:flex;gap:5px;flex-wrap:wrap}
+.role-chip{
+  padding:4px 13px;font-size:11px;border-radius:var(--radius-full);cursor:pointer;
+  border:1px solid var(--border-default);background:var(--surface-raised);
+  color:var(--text-secondary);transition:all 0.15s;white-space:nowrap;
+}
+.role-chip:hover{border-color:var(--brand);color:var(--brand)}
+.role-chip.active{background:var(--brand);color:var(--text-inverse);border-color:var(--brand)}
+
+/* --- Step Action Buttons --- */
+.step-actions{display:flex;gap:3px;flex-shrink:0;margin-left:auto}
+.step-actions .btn{font-size:9px;padding:2px 5px;height:22px;min-width:22px;justify-content:center}
+
+/* --- Demand Selector Modal --- */
+.demand-option{
+  padding:8px 12px;cursor:pointer;border-radius:var(--radius-sm);transition:all 0.12s;
+  border:1px solid var(--border-subtle);margin-bottom:4px;font-size:13px;
+}
+.demand-option:hover{border-color:var(--brand);background:var(--brand-subtle)}
+.demand-option.selected{border-color:var(--brand);background:var(--brand-subtle);font-weight:600}
+.demand-option .doid{font-weight:600;color:var(--brand);margin-right:8px}
+.demand-option .dodesc{color:var(--text-secondary);font-size:12px}
+
+/* --- Stats Summary --- */
+.workspace-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:1100px){.workspace-stats{grid-template-columns:repeat(2,1fr)}}
+
+/* --- Toast --- */
+.ws-toast{position:fixed;top:64px;right:20px;z-index:9999;background:var(--surface-raised);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 16px;box-shadow:var(--shadow-lg);display:none;align-items:center;gap:8px;font-size:12px;animation:slideInRight 0.25s var(--ease-out)}
+.ws-toast.show{display:flex}
+@keyframes slideInRight{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.ws-toast i{font-size:14px}
+.ws-toast.success i{color:var(--success)}
+.ws-toast.info i{color:var(--brand)}
+.ws-toast.warning i{color:var(--warning)}
+
+/* --- Fade animations --- */
+.anim-fade-up{animation:fadeUp 0.35s var(--ease-out) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.step-card{animation:fadeUp 0.35s var(--ease-out) both}
+
+/* --- Demand Overview Cards --- */
+.workspace-overview{display:flex;flex-direction:column;gap:4px}
+.demand-overview-card{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--surface-raised);border:1px solid var(--border-subtle);cursor:pointer;transition:all 0.12s var(--ease-out)}
+.demand-overview-card:hover{border-color:var(--brand);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.demand-overview-card.active{border-color:var(--brand);background:var(--brand-ghost,var(--brand-subtle))}
+.demand-overview-card .doc-top{display:flex;align-items:center;gap:6px}
+.demand-overview-card .doid{font-weight:700;font-size:11px;color:var(--brand);min-width:58px;flex-shrink:0}
+.demand-overview-card .dotitle{font-weight:500;font-size:12px;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.demand-overview-card .status-badge{font-size:9px;padding:1px 7px;border-radius:10px;font-weight:600;flex-shrink:0}
+.demand-overview-card .status-badge.all-done{background:var(--success-subtle);color:var(--success)}
+.demand-overview-card .status-badge.in-progress{background:var(--warning-subtle);color:var(--warning)}
+.demand-overview-card .status-badge.not-started{background:var(--surface-subtle);color:var(--text-tertiary)}
+.demand-overview-card .doc-progress{display:flex;align-items:center;gap:6px}
+.demand-overview-card .progress-bar-bg{flex:1;height:4px;border-radius:2px;background:var(--surface-subtle);overflow:hidden}
+.demand-overview-card .progress-bar-fill{height:100%;border-radius:2px;transition:width 0.3s}
+.demand-overview-card .progress-text{font-size:10px;font-weight:600;color:var(--text-tertiary);min-width:26px;text-align:right;flex-shrink:0}
+</style>
+<title>领域服务协同工作台 — 业务中台装配环境</title>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1"><div class="flex items-center gap-2 mr-6"><div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div><span class="text-white font-semibold text-base">业务中台装配环境</span></div>
+    <nav class="flex items-center gap-0.5"><a href="../index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>首页</span></a><a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a><a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a><a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a><a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a><a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a><a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a></nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm"><div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div><div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div><div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div><span class="text-xs">张架构</span></div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+<main class="flex-1 overflow-y-auto">
+  <div id="breadcrumb"></div>
+
+  <!-- ====== Page Hero ====== -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Domain Service Collaborative Workspace</div>
+      <h2>领域服务协同工作台</h2>
+      <div class="subtitle">端到端管理领域服务的装配、配置、测试与发布全流程，多角色协同推进需求落地</div>
+    </div>
+  </div>
+
+  <!-- ====== Page Content ====== -->
+  <div class="page-section anim-fade-up">
+
+    <!-- Workspace Stats -->
+    <div class="workspace-stats" id="wsStats">
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">总步骤</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statTotal">6</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-list-check"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">已完成</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statCompleted">0</div></div><div class="stat-icon-wrap green"><i class="fa-solid fa-check"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">进行中</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statInProgress">0</div></div><div class="stat-icon-wrap amber"><i class="fa-solid fa-spinner"></i></div></div></div>
+      <div class="stat-card"><div class="flex items-center justify-between"><div><div class="text-xs mb-1" style="color:var(--text-tertiary)">整体进度</div><div class="text-2xl font-bold" style="color:var(--text-primary)" id="statProgress">0%</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-gauge-high"></i></div></div></div>
+    </div>
+
+    <!-- ====== Left-Right: Overview + Pipeline ====== -->
+    <div class="flex gap-4 mt-4">
+
+      <!-- Left: Demand Overview -->
+      <div class="w-80 flex-shrink-0 demand-overview-section">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="fa-solid fa-clipboard-list" style="color:var(--brand);font-size:12px"></i>
+          <span class="text-xs font-semibold" style="color:var(--text-secondary)">需求列表</span>
+          <span class="text-xs" style="color:var(--text-tertiary)">点击查看明细</span>
+        </div>
+        <div class="card p-3">
+          <div class="workspace-overview" id="demandOverview">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Pipeline -->
+      <div class="flex-1 min-w-0">
+
+        <!-- Pipeline Toolbar: Role Filter -->
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-xs font-medium" style="color:var(--text-secondary)"><i class="fa-solid fa-users mr-1"></i>角色筛选：</span>
+          <div class="role-chips" id="roleChips"></div>
+        </div>
+
+        <!-- Pipeline Flow -->
+        <div class="mt-3">
+          <div class="flex items-center gap-2 mb-3">
+            <i class="fa-solid fa-arrow-right-arrow-left" style="color:var(--brand);font-size:11px"></i>
+            <span class="text-xs font-semibold" style="color:var(--text-secondary)">六步协同流水线</span>
+            <span class="text-xs" style="color:var(--text-tertiary)" id="visibleStepCount">显示全部 6 个步骤</span>
+          </div>
+          <div class="pipeline-flow" id="pipelineFlow">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Pipeline Legend -->
+        <div class="flex items-center gap-4 mt-3 text-xs" style="color:var(--text-tertiary)">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:var(--border-strong)"></span>未开始</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:var(--amber)"></span>进行中</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:var(--success)"></span>已完成</span>
+        </div>
+
+      </div><!-- /right pipeline -->
+    </div><!-- /left-right layout -->
+
+  </div><!-- /page-section -->
+</main>
+</div>
+
+<!-- ====== Toast ====== -->
+<div class="ws-toast" id="wsToast"></div>
+
+<script>
+// ====================================================================
+// WORKSPACE STEPS DATA
+// ====================================================================
+var WORKSPACE_STEPS = [
+  {id:'components',   num:1, icon:'fa-puzzle-piece',     name:'组件编排',        href:'components.html',   desc:'选配领域服务组件，组合为业务模板', role:'业务人员'},
+  {id:'assembly',     num:2, icon:'fa-diagram-project',  name:'协同可视化设计',  href:'assembly.html',     desc:'拖拽编排业务链路，配置路由与检测', role:'架构师'},
+  {id:'data-service', num:3, icon:'fa-database',         name:'数据标准接入',    href:'data-service.html', desc:'引用数据模型，校验质量，映射字段', role:'数据架构师'},
+  {id:'rules',        num:4, icon:'fa-sliders',          name:'编排规则配置',    href:'rules.html',        desc:'配置流转规则，在线调试与热更新',   role:'业务专家'},
+  {id:'model-service',num:5, icon:'fa-brain',            name:'智能能力适配',    href:'model-service.html',desc:'嵌入AI模型，监控调用与熔断',     role:'AI工程师'},
+  {id:'publish',      num:6, icon:'fa-rocket',           name:'预览发布',        href:'publish.html',      desc:'仿真校验，灰度发布，版本回滚',     role:'发布经理'}
+];
+
+// ====================================================================
+// DEMAND DATA
+// ====================================================================
+var DEMAND_LIST = [
+  {id:'DMD-001', title:'油井远程监控系统', desc:'井场远程数据监控与报警系统'},
+  {id:'DMD-002', title:'生产运行综合看板', desc:'实时生产数据汇聚与可视化'},
+  {id:'DMD-003', title:'设备预测性维护', desc:'基于振动和温度数据的故障预测'},
+  {id:'DMD-0024', title:'油气生产智能感知平台', desc:'全面感知、智能分析、协同优化'},
+  {id:'DMD-005', title:'管道泄漏监测系统', desc:'长输管道泄漏检测与定位'},
+  {id:'DMD-006', title:'供应链协同平台', desc:'上下游供应链数据共享与协同'},
+  {id:'DMD-007', title:'安全环保监管系统', desc:'生产安全与环境实时监管'},
+  {id:'DMD-008', title:'碳排放核算系统', desc:'全产业链碳排放数据核算与追踪'}
+];
+
+// ====================================================================
+// STATE
+// ====================================================================
+var selectedRole = '全部';
+var selectedDemandId = null;
+
+// ====================================================================
+// DOM REFS
+// ====================================================================
+var pipelineEl = document.getElementById('pipelineFlow');
+var roleChips = document.getElementById('roleChips');
+var toast = document.getElementById('wsToast');
+
+// ====================================================================
+// LOCALSTORAGE HELPERS
+// ====================================================================
+function getDemandKey() { return 'workspace_status_' + selectedDemandId; }
+
+function loadStepStatuses() {
+  if (!selectedDemandId) return {};
+  try {
+    var raw = localStorage.getItem(getDemandKey());
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+function saveStepStatuses(statuses) {
+  if (!selectedDemandId) return;
+  try { localStorage.setItem(getDemandKey(), JSON.stringify(statuses)); } catch(e) {}
+}
+
+function getStepStatus(stepId) {
+  var statuses = loadStepStatuses();
+  return statuses[stepId] || 'not_started';
+}
+
+function setStepStatus(stepId, status) {
+  var statuses = loadStepStatuses();
+  statuses[stepId] = status;
+  saveStepStatuses(statuses);
+}
+
+// ====================================================================
+// TOAST
+// ====================================================================
+function showToast(message, type) {
+  type = type || 'info';
+  var iconMap = { success: 'fa-check-circle', info: 'fa-info-circle', warning: 'fa-exclamation-triangle' };
+  toast.className = 'ws-toast show';
+  toast.innerHTML = '<i class="fa-regular ' + (iconMap[type] || 'fa-info-circle') + '" style="color:var(--' + (type === 'info' ? 'brand' : type) + ')"></i><span>' + message + '</span>';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function() { toast.classList.remove('show'); }, 2500);
+}
+
+// ====================================================================
+// RENDER PIPELINE
+// ====================================================================
+function renderPipeline() {
+  var statuses = loadStepStatuses();
+  var filtered = WORKSPACE_STEPS;
+  var visibleCount = 0;
+
+  if (selectedRole !== '全部') {
+    filtered = WORKSPACE_STEPS.filter(function(s) { return s.role === selectedRole; });
+  }
+
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var step = filtered[i];
+    var status = statuses[step.id] || 'not_started';
+    var statusLabel = '未开始';
+    var statusIcon = '';
+    if (status === 'completed') { statusLabel = '已完成'; statusIcon = '<i class="fa-solid fa-check"></i> '; }
+    else if (status === 'in_progress') { statusLabel = '进行中'; statusIcon = '<i class="fa-solid fa-spinner"></i> '; }
+
+    if (i > 0) {
+      html += '<div class="pipeline-arrow"><i class="fa-solid fa-arrow-down"></i></div>';
+    }
+
+    html += '<div class="step-card ' + status + '" data-step-id="' + step.id + '" onclick="navigateToStep(\'' + step.id + '\')">';
+    html += '  <div class="step-num">' + step.num + '</div>';
+    html += '  <div class="step-icon"><i class="fa-solid ' + step.icon + '"></i></div>';
+    html += '  <div class="step-name">' + step.name + '</div>';
+    html += '  <div class="step-desc">' + step.desc + '</div>';
+    html += '  <div class="step-badge">' + statusIcon + statusLabel + '</div>';
+    html += '  <div class="step-actions">';
+    if (status !== 'completed') {
+      html += '    <button class="btn btn-primary btn-xs" onclick="event.stopPropagation();markCompleted(\'' + step.id + '\')" title="标记完成"><i class="fa-solid fa-check"></i></button>';
+    }
+    if (status !== 'in_progress' && status !== 'completed') {
+      html += '    <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();markInProgress(\'' + step.id + '\')" title="开始进行"><i class="fa-solid fa-play"></i></button>';
+    }
+    if (status === 'completed' || status === 'in_progress') {
+      html += '    <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();resetStep(\'' + step.id + '\')" title="重置"><i class="fa-solid fa-rotate-left"></i></button>';
+    }
+    html += '  </div>';
+    html += '</div>';
+
+    visibleCount++;
+  }
+
+  pipelineEl.innerHTML = html;
+
+  // Update visible count label
+  var total = WORKSPACE_STEPS.length;
+  if (selectedRole === '全部') {
+    document.getElementById('visibleStepCount').textContent = '显示全部 ' + total + ' 个步骤';
+  } else {
+    document.getElementById('visibleStepCount').textContent = '筛选后显示 ' + visibleCount + ' / ' + total + ' 个步骤';
+  }
+
+  updateStats();
+}
+
+// ====================================================================
+// ROLE FILTER
+// ====================================================================
+var ALL_ROLES = ['全部','业务人员','架构师','数据架构师','业务专家','AI工程师','发布经理'];
+
+function renderRoleChips() {
+  var html = '';
+  for (var i = 0; i < ALL_ROLES.length; i++) {
+    var r = ALL_ROLES[i];
+    var active = r === selectedRole ? ' active' : '';
+    html += '<span class="role-chip' + active + '" onclick="setRole(\'' + r + '\')">';
+    var iconMap = {
+      '全部':'fa-layer-group',
+      '业务人员':'fa-user-tie',
+      '架构师':'fa-sitemap',
+      '数据架构师':'fa-database',
+      '业务专家':'fa-chart-line',
+      'AI工程师':'fa-brain',
+      '发布经理':'fa-rocket'
+    };
+    html += '<i class="fa-solid ' + (iconMap[r] || 'fa-user') + ' mr-1" style="font-size:9px"></i>' + r + '</span>';
+  }
+  roleChips.innerHTML = html;
+}
+
+function setRole(role) {
+  selectedRole = role;
+  renderRoleChips();
+  renderPipeline();
+}
+
+// ====================================================================
+// STEP ACTIONS
+// ====================================================================
+function markCompleted(stepId) {
+  setStepStatus(stepId, 'completed');
+  var step = null;
+  for (var i = 0; i < WORKSPACE_STEPS.length; i++) {
+    if (WORKSPACE_STEPS[i].id === stepId) { step = WORKSPACE_STEPS[i]; break; }
+  }
+  showToast('✓ 步骤 ' + step.num + ' 「' + step.name + '」已标记为完成', 'success');
+  renderPipeline();
+}
+
+function markInProgress(stepId) {
+  setStepStatus(stepId, 'in_progress');
+  var step = null;
+  for (var i = 0; i < WORKSPACE_STEPS.length; i++) {
+    if (WORKSPACE_STEPS[i].id === stepId) { step = WORKSPACE_STEPS[i]; break; }
+  }
+  showToast('▶ 步骤 ' + step.num + ' 「' + step.name + '」已标记为进行中', 'info');
+  renderPipeline();
+}
+
+function resetStep(stepId) {
+  setStepStatus(stepId, 'not_started');
+  showToast('↺ 步骤已重置', 'warning');
+  renderPipeline();
+}
+
+// ====================================================================
+// NAVIGATION
+// ====================================================================
+function navigateToStep(stepId) {
+  var step = null;
+  for (var i = 0; i < WORKSPACE_STEPS.length; i++) {
+    if (WORKSPACE_STEPS[i].id === stepId) { step = WORKSPACE_STEPS[i]; break; }
+  }
+  if (!step) return;
+
+  // Set the current demand so the target page picks it up
+  if (selectedDemandId) {
+    var demandTitle = '';
+    for (var j = 0; j < DEMAND_LIST.length; j++) {
+      if (DEMAND_LIST[j].id === selectedDemandId) { demandTitle = DEMAND_LIST[j].title; break; }
+    }
+    Scaffold.setCurrentDemand(selectedDemandId, demandTitle);
+  }
+  Scaffold.navigateTo(step.href);
+}
+
+// ====================================================================
+// STATS
+// ====================================================================
+function updateStats() {
+  var statuses = loadStepStatuses();
+  var total = WORKSPACE_STEPS.length;
+  var completed = 0;
+  var inProgress = 0;
+
+  for (var i = 0; i < WORKSPACE_STEPS.length; i++) {
+    var s = statuses[WORKSPACE_STEPS[i].id] || 'not_started';
+    if (s === 'completed') completed++;
+    if (s === 'in_progress') inProgress++;
+  }
+
+  document.getElementById('statCompleted').textContent = completed;
+  document.getElementById('statInProgress').textContent = inProgress;
+
+  var progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+  document.getElementById('statProgress').textContent = progress + '%';
+}
+
+// ====================================================================
+// DEMAND OVERVIEW (总览列表)
+// ====================================================================
+function computeDemandSummary(demandId) {
+  var total = WORKSPACE_STEPS.length;
+  var key = 'workspace_status_' + demandId;
+  var statuses = {};
+  try { statuses = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) {}
+  var completed = 0, inProgress = 0;
+  for (var i = 0; i < WORKSPACE_STEPS.length; i++) {
+    var s = statuses[WORKSPACE_STEPS[i].id] || 'not_started';
+    if (s === 'completed') completed++;
+    if (s === 'in_progress') inProgress++;
+  }
+  var notStarted = total - completed - inProgress;
+  var progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { total: total, completed: completed, inProgress: inProgress, notStarted: notStarted, progress: progress };
+}
+
+function renderDemandOverview() {
+  var container = document.getElementById('demandOverview');
+  if (!container) return;
+  var html = '';
+  for (var i = 0; i < DEMAND_LIST.length; i++) {
+    var d = DEMAND_LIST[i];
+    var summary = computeDemandSummary(d.id);
+    var allDone = summary.completed === summary.total;
+    var anyProgress = summary.completed > 0 || summary.inProgress > 0;
+    var statusClass = allDone ? 'all-done' : (anyProgress ? 'in-progress' : 'not-started');
+    var statusLabel = allDone ? '已完成' : (anyProgress ? '组装中' : '未开始');
+    var activeClass = (d.id === selectedDemandId) ? ' active' : '';
+
+    html += '<div class="demand-overview-card' + activeClass + '" onclick="selectDemandFromOverview(\'' + d.id + '\')">';
+    html += '  <div class="doc-top">';
+    html += '    <span class="doid">' + d.id + '</span>';
+    html += '    <span class="dotitle">' + d.title + '</span>';
+    html += '    <span class="status-badge ' + statusClass + '">' + statusLabel + '</span>';
+    html += '  </div>';
+    html += '  <div class="doc-progress">';
+    html += '    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + summary.progress + '%;background:' + (allDone ? 'var(--success)' : 'var(--amber)') + '"></div></div>';
+    html += '    <span class="progress-text">' + summary.completed + '/' + summary.total + '</span>';
+    html += '  </div>';
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function selectDemandFromOverview(id) {
+  // Find the demand title
+  var title = '';
+  for (var i = 0; i < DEMAND_LIST.length; i++) {
+    if (DEMAND_LIST[i].id === id) { title = DEMAND_LIST[i].title; break; }
+  }
+  selectedDemandId = id;
+  Scaffold.setCurrentDemand(id, title);
+  renderDemandOverview();
+  renderPipeline();
+  showToast('已切换到需求：' + id, 'success');
+}
+
+// ====================================================================
+// SAMPLE DATA（首次加载自动预置，模拟真实进度）
+// ====================================================================
+function ensureSampleData() {
+  var sampleKey = 'workspace_sample_seeded';
+  if (localStorage.getItem(sampleKey)) return; // 已预置过，跳过
+
+  var samples = {
+    'DMD-001': { components:'completed', assembly:'completed', 'data-service':'in_progress' },
+    'DMD-002': { components:'completed', assembly:'in_progress' },
+    'DMD-003': { components:'completed', assembly:'completed', 'data-service':'completed', rules:'completed', 'model-service':'in_progress' },
+    'DMD-0024': { components:'completed', assembly:'completed', 'data-service':'in_progress' },
+    'DMD-005': {},
+    'DMD-006': { components:'completed' },
+    'DMD-007': {},
+    'DMD-008': {}
+  };
+
+  for (var did in samples) {
+    if (samples.hasOwnProperty(did)) {
+      try { localStorage.setItem('workspace_status_' + did, JSON.stringify(samples[did])); } catch(e) {}
+    }
+  }
+
+  try { localStorage.setItem(sampleKey, '1'); } catch(e) {}
+
+  // 默认选中第一个有进度的需求
+  selectedDemandId = 'DMD-001';
+  Scaffold.setCurrentDemand('DMD-001', '油井远程监控系统');
+}
+
+// ====================================================================
+// INIT
+// ====================================================================
+function init() {
+  // Initialize scaffold
+  Scaffold.init('workspace');
+
+  // 首次加载预置示例数据
+  ensureSampleData();
+
+  // Read current demand
+  var demand = Scaffold.getCurrentDemand();
+  if (demand && demand.id) {
+    selectedDemandId = demand.id;
+  } else {
+    // Fallback: check scene data
+    var sceneDemandId = localStorage.getItem('scene_demand_id');
+    var sceneDemandTitle = localStorage.getItem('scene_demand_title');
+    if (sceneDemandId && sceneDemandTitle) {
+      Scaffold.setCurrentDemand(sceneDemandId, sceneDemandTitle);
+      selectedDemandId = sceneDemandId;
+    }
+  }
+
+  renderRoleChips();
+  renderDemandOverview();
+  renderPipeline();
+}
+
+// Run init on DOM ready
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

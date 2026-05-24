@@ -1,0 +1,639 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../_shared/theme.js"></script>
+<link rel="stylesheet" href="../_shared/scaffold.css">
+
+<!-- 数据模型（按依赖顺序） -->
+<script src="../_shared/models/enums.js"></script>
+<script src="../_shared/models/utils.js"></script>
+<script src="../_shared/models/status-flow.js"></script>
+<script src="../_shared/models/demand.js"></script>
+<script src="../_shared/models/review.js"></script>
+<script src="../_shared/models/publish.js"></script>
+<script src="../_shared/models/catalog.js"></script>
+<script src="../_shared/models/index.js"></script>
+
+<!-- 脚手架 -->
+<script src="../_shared/scaffold.js"></script>
+<title>需求评审 — 业务中台装配环境</title>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" style="background:var(--surface-base)">
+<header class="h-12 flex items-center justify-between px-4 flex-shrink-0 relative z-50" style="background:var(--brand)">
+  <div class="flex items-center gap-1">
+    <div class="flex items-center gap-2 mr-6">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,var(--amber),oklch(52% 0.15 55))"><i class="fa-solid fa-oil-well text-white text-xs"></i></div>
+      <span class="text-white font-semibold text-base">业务中台装配环境</span>
+    </div>
+    <nav class="flex items-center gap-0.5">
+      <a href="../index.html" class="nav-item active"><i class="fa-solid fa-home"></i><span>首页</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-clipboard-list"></i><span>计划管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-industry"></i><span>生产运行</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i><span>设备管理</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-bell"></i><span>应急协调</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-shield"></i><span>安全环保</span></a>
+      <a href="#" class="nav-item"><i class="fa-solid fa-diagram-project"></i><span>流程中心</span></a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 text-white text-sm">
+    <div class="flex items-center gap-1 px-3 py-1 rounded text-xs cursor-pointer hover:bg-white/15 transition" style="background:rgba(255,255,255,.15)"><span>我的工作台</span><i class="fa-solid fa-caret-down text-[10px]"></i></div>
+    <div class="relative cursor-pointer"><i class="fa-regular fa-bell text-base"></i><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center text-white" style="background:var(--amber)">3</span></div>
+    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer" style="background:rgba(255,255,255,.2)">张</div>
+    <span class="text-xs">张架构</span>
+  </div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-56 flex-shrink-0 border-r h-full overflow-y-auto" style="overflow-y:auto;border-color:var(--border-strong)" id="sidebar"></aside>
+<main class="flex-1 overflow-y-auto">
+  <div id="breadcrumb"></div>
+  <!-- ====== Page Header ====== -->
+  <div class="page-hero">
+    <div>
+      <div class="section-eyebrow">Review Management</div>
+      <h2>需求评审</h2>
+      <div class="subtitle">标准化评审流程，待办提醒、多角色会签、历史评审回溯与决策记录</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" onclick="showReviewModal()"><i class="fa-solid fa-plus"></i>发起评审</button>
+    </div>
+  </div>
+  <!-- ====== Page Content ====== -->
+  <div class="page-section anim-fade-up">
+    <div class="grid grid-cols-5 gap-3 mb-5 anim-stagger">
+      <div class="stat-card" onclick="filterByStatus(this,'全部')"><div class="flex items-center justify-between"><div><div class="text-xs mb-2" style="color:var(--text-tertiary)">全部评审</div><div class="stat-value" id="stat 全部">0</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-clipboard-list"></i></div></div></div>
+      <div class="stat-card" onclick="filterByStatus(this,'待评审')"><div class="flex items-center justify-between"><div><div class="text-xs mb-2" style="color:var(--text-tertiary)">待评审</div><div class="stat-value" style="color:var(--amber)" id="stat 待评审">0</div></div><div class="stat-icon-wrap amber"><i class="fa-solid fa-clock"></i></div></div></div>
+      <div class="stat-card" onclick="filterByStatus(this,'评审中')"><div class="flex items-center justify-between"><div><div class="text-xs mb-2" style="color:var(--text-tertiary)">评审中</div><div class="stat-value" style="color:var(--brand)" id="stat 评审中">0</div></div><div class="stat-icon-wrap brand"><i class="fa-solid fa-spinner"></i></div></div></div>
+      <div class="stat-card" onclick="filterByStatus(this,'已通过')"><div class="flex items-center justify-between"><div><div class="text-xs mb-2" style="color:var(--text-tertiary)">已通过</div><div class="stat-value" style="color:var(--success)" id="stat 已通过">0</div></div><div class="stat-icon-wrap green"><i class="fa-solid fa-check-circle"></i></div></div></div>
+      <div class="stat-card" onclick="filterByStatus(this,'已驳回')"><div class="flex items-center justify-between"><div><div class="text-xs mb-2" style="color:var(--text-tertiary)">已驳回</div><div class="stat-value" style="color:var(--danger)" id="stat 已驳回">0</div></div><div class="stat-icon-wrap danger"><i class="fa-solid fa-circle-xmark"></i></div></div></div>
+    </div>
+    <div class="filter-bar">
+      <select class="filter-select" id="rvStatus" onchange="renderReview()"><option value="">所有评审状态</option><option>待评审</option><option>评审中</option><option>已通过</option><option>已驳回</option><option>已退回</option></select>
+      <select class="filter-select" id="rvReviewer" onchange="renderReview()"><option value="">所有评审人</option><option>张架构</option><option>李业务</option><option>王技术</option><option>赵工程</option></select>
+      <input type="text" class="input" id="rvSearch" placeholder="搜索需求名称..." style="width:180px" oninput="renderReview()">
+    </div>
+    <div class="card card-hover overflow-hidden">
+      <div style="overflow-x:auto">
+      <table class="data-table"><thead><tr>
+        <th style="width:80px">评审单号</th><th style="min-width:160px">需求标题</th><th style="width:55px">类型</th>
+        <th style="width:55px">优先级</th><th style="width:65px">评审状态</th><th style="width:90px">评审人</th>
+        <th style="width:110px">评审会议</th><th style="width:80px">截止日期</th><th style="width:110px">操作</th>
+      </tr></thead><tbody id="reviewBody"></tbody></table>
+      </div>
+      <div id="rvNoResult" class="empty-state" style="display:none"><i class="fa-solid fa-inbox"></i><div class="msg">暂无评审记录</div></div>
+      <div class="card-footer">
+        <span class="info" id="rvPageInfo">共 0 条记录</span>
+        <div class="pagination" id="rvPageBtns"></div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+<div class="modal-overlay" id="newModal"><div class="modal-box" id="modalContent"></div></div>
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()"><div class="detail-panel" onclick="event.stopPropagation()" id="detailPanel"></div></div>
+<div class="toast" id="toast"><i class="fa-solid fa-check-circle"></i><span id="toastText"></span></div>
+<script>
+/* ===== 工具 ===== */
+function toast(t,type){var i={success:'fa-check-circle',info:'fa-info-circle',warning:'fa-exclamation-circle'};var e=document.getElementById('toast');e.className='toast toast-'+(type||'info')+' show';e.querySelector('i').className='fa-solid '+(i[type]||i.info);document.getElementById('toastText').textContent=t;setTimeout(function(){e.classList.remove('show');},2500);}
+function closeModal(){document.getElementById('newModal').classList.remove('show');}
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('show');}
+function badge(m,v){var c=m[v]||'var(--surface-subtle)|var(--text-tertiary)';var p=c.split('|');return '<span class="badge" style="background:'+p[0]+';color:'+p[1]+'">'+v+'</span>';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeDetail();document.getElementById('demandDropdown').style.display='none';}});
+document.addEventListener('click',function(e){
+  var dropdown=document.getElementById('demandDropdown');
+  var search=document.getElementById('rvDemandSearch');
+  if(dropdown&&search&&!dropdown.contains(e.target)&&e.target!==search){
+    dropdown.style.display='none';
+  }
+});
+
+var pColors={'紧急':'var(--danger-subtle)|var(--danger)','高':'var(--danger-subtle)|var(--danger)','中':'var(--success-subtle)|var(--success)','低':'var(--brand-subtle)|var(--text-tertiary)'};
+var sColors={'待评审':'var(--warning-subtle)|var(--warning)','设计中':'var(--brand-subtle)|var(--brand)','已上线':'var(--success-subtle)|var(--success)','已驳回':'var(--surface-subtle)|var(--text-tertiary)'};
+var tLabels={'场景':'场景','模块':'模块','组件':'组件','数据服务':'数据服务','模型服务':'模型服务','其他':'其他'};
+var typeColors={'场景':'oklch(55% 0.22 315)|oklch(96% 0.04 315)','模块':'var(--brand)|var(--brand-subtle)','组件':'var(--info)|var(--info-subtle)','数据服务':'var(--amber)|var(--amber-subtle)','模型服务':'oklch(55% 0.2 0)|oklch(96% 0.04 0)','其他':'var(--text-tertiary)|var(--surface-subtle)'};
+
+var DEMANDS=[
+{id:'DMD-0024',title:'生产数据实时采集服务',type:'数据服务',domain:'油气生产经营',priority:'紧急',status:'待评审',assignee:'李业务',reporter:'李业务'},
+{id:'DMD-0023',title:'油井监控数据异常告警',type:'模块',domain:'油气生产经营',priority:'高',status:'设计中',assignee:'王技术',reporter:'李业务'},
+{id:'DMD-0022',title:'管网压力分析服务',type:'数据服务',domain:'装备制造',priority:'高',status:'设计中',assignee:'赵工程',reporter:'赵工程'},
+{id:'DMD-0021',title:'生产报表自动生成',type:'模块',domain:'炼化新材料',priority:'中',status:'已上线',assignee:'孙分析',reporter:'孙分析'},
+{id:'DMD-0020',title:'设备巡检路线优化',type:'组件',domain:'油田技术服务',priority:'低',status:'已驳回',assignee:'周运维',reporter:'周运维'},
+{id:'DMD-0019',title:'安全巡检数字化',type:'场景',domain:'油气新能源',priority:'中',status:'已上线',assignee:'郑安全',reporter:'郑安全'},
+{id:'DMD-0018',title:'环保数据监测上报',type:'数据服务',domain:'销售',priority:'高',status:'已上线',assignee:'冯环保',reporter:'冯环保'},
+{id:'DMD-0017',title:'设备寿命预测模型',type:'模型服务',domain:'天然气销售',priority:'高',status:'设计中',assignee:'赵工程',reporter:'赵工程'},
+{id:'DMD-0016',title:'生产调度智能优化',type:'场景',domain:'海外油气',priority:'紧急',status:'待评审',assignee:'李业务',reporter:'李业务'},
+{id:'DMD-0015',title:'能耗统计分析系统',type:'模块',domain:'国际贸易',priority:'中',status:'已上线',assignee:'孙分析',reporter:'孙分析'},
+{id:'DMD-0014',title:'应急指挥调度平台',type:'场景',domain:'工程建设',priority:'紧急',status:'设计中',assignee:'郑安全',reporter:'郑安全'},
+{id:'DMD-0013',title:'设备维修工单系统',type:'模块',domain:'运输物流',priority:'中',status:'已上线',assignee:'周运维',reporter:'周运维'},
+{id:'DMD-0012',title:'生产计划排程优化',type:'组件',domain:'油气生产经营',priority:'高',status:'待评审',assignee:'李业务',reporter:'李业务'},
+{id:'DMD-0011',title:'视频AI安全分析',type:'模型服务',domain:'炼化新材料',priority:'高',status:'已驳回',assignee:'冯环保',reporter:'冯环保'},
+{id:'DMD-0010',title:'设备台账管理系统',type:'模块',domain:'油田技术服务',priority:'中',status:'已上线',assignee:'周运维',reporter:'周运维'},
+{id:'DMD-0009',title:'生产数据采集网关',type:'组件',domain:'海外油气',priority:'高',status:'已上线',assignee:'王技术',reporter:'王技术'},
+{id:'DMD-0008',title:'安全隐患排查系统',type:'场景',domain:'工程建设',priority:'高',status:'设计中',assignee:'郑安全',reporter:'郑安全'},
+{id:'DMD-0007',title:'生产质量追溯系统',type:'数据服务',domain:'油气新能源',priority:'中',status:'已上线',assignee:'孙分析',reporter:'孙分析'},
+{id:'DMD-0006',title:'设备预防性维护',type:'模型服务',domain:'装备制造',priority:'高',status:'待评审',assignee:'赵工程',reporter:'赵工程'},
+{id:'DMD-0005',title:'环保排放在线监测',type:'数据服务',domain:'天然气销售',priority:'高',status:'已上线',assignee:'冯环保',reporter:'冯环保'},
+{id:'DMD-0004',title:'生产能耗优化系统',type:'模块',domain:'国际贸易',priority:'中',status:'已驳回',assignee:'李业务',reporter:'李业务'},
+{id:'DMD-0003',title:'设备远程控制平台',type:'场景',domain:'运输物流',priority:'紧急',status:'已上线',assignee:'王技术',reporter:'王技术'},
+{id:'DMD-0002',title:'安全生产考核系统',type:'其他',domain:'油气生产经营',priority:'中',status:'已上线',assignee:'郑安全',reporter:'郑安全'},
+{id:'DMD-0001',title:'基础数据管理平台',type:'模块',domain:'炼化新材料',priority:'高',status:'已上线',assignee:'孙分析',reporter:'孙分析'}
+];
+
+var reviews=[
+{id:'RV-0012',demandId:'DMD-0024',status:'待评审',reviewers:['张架构','王技术'],meeting:'2026-04-16 14:00',deadline:'2026-04-16',conclusion:'',checklist:[{text:'需求完整性',done:false},{text:'技术可行性',done:false},{text:'资源评估',done:false},{text:'排期合理性',done:false}],comments:[]},
+{id:'RV-0011',demandId:'DMD-0016',status:'待评审',reviewers:['张架构','赵工程'],meeting:'2026-04-17 10:00',deadline:'2026-04-17',conclusion:'',checklist:[{text:'需求完整性',done:false},{text:'技术可行性',done:false},{text:'资源评估',done:false},{text:'排期合理性',done:false}],comments:[]},
+{id:'RV-0010',demandId:'DMD-0012',status:'待评审',reviewers:['李业务','王技术'],meeting:'2026-04-17 14:00',deadline:'2026-04-18',conclusion:'',checklist:[{text:'需求完整性',done:false},{text:'技术可行性',done:false},{text:'资源评估',done:false},{text:'排期合理性',done:false}],comments:[]},
+{id:'RV-0009',demandId:'DMD-0006',status:'待评审',reviewers:['张架构','赵工程'],meeting:'2026-04-18 10:00',deadline:'2026-04-19',conclusion:'',checklist:[{text:'需求完整性',done:false},{text:'技术可行性',done:false},{text:'资源评估',done:false},{text:'排期合理性',done:false}],comments:[]},
+{id:'RV-0008',demandId:'DMD-0022',status:'评审中',reviewers:['张架构','王技术','赵工程'],meeting:'2026-04-15 14:00',deadline:'2026-04-15',conclusion:'',checklist:[{text:'需求完整性',done:true},{text:'技术可行性',done:true},{text:'资源评估',done:false},{text:'排期合理性',done:false}],comments:[{user:'王技术',time:'2026-04-15 15:30',text:'数据源接口需要统一规范，建议参考 API 设计规范文档。'}]},
+{id:'RV-0007',demandId:'DMD-0017',status:'评审中',reviewers:['张架构','王技术'],meeting:'2026-04-15 10:00',deadline:'2026-04-16',conclusion:'',checklist:[{text:'需求完整性',done:true},{text:'技术可行性',done:false},{text:'资源评估',done:false},{text:'排期合理性',done:false}],comments:[]},
+{id:'RV-0006',demandId:'DMD-0021',status:'已通过',reviewers:['张架构','李业务'],meeting:'2026-04-10 14:00',deadline:'2026-04-11',conclusion:'需求完整，技术方案可行，建议加入数据缓存层',checklist:[{text:'需求完整性',done:true},{text:'技术可行性',done:true},{text:'资源评估',done:true},{text:'排期合理性',done:true}],comments:[{user:'李业务',time:'2026-04-10 15:00',text:'同意评审意见，注意性能优化。'}]},
+{id:'RV-0005',demandId:'DMD-0019',status:'已通过',reviewers:['张架构','郑安全'],meeting:'2026-04-07 10:00',deadline:'2026-04-08',conclusion:'通过，优先实现移动端巡检功能',checklist:[{text:'需求完整性',done:true},{text:'技术可行性',done:true},{text:'资源评估',done:true},{text:'排期合理性',done:true}],comments:[]},
+{id:'RV-0004',demandId:'DMD-0018',status:'已通过',reviewers:['张架构','冯环保'],meeting:'2026-04-05 14:00',deadline:'2026-04-06',conclusion:'通过，需补充数据上报接口规范',checklist:[{text:'需求完整性',done:true},{text:'技术可行性',done:true},{text:'资源评估',done:true},{text:'排期合理性',done:true}],comments:[]},
+{id:'RV-0003',demandId:'DMD-0011',status:'已驳回',reviewers:['张架构','王技术','冯环保'],meeting:'2026-03-22 14:00',deadline:'2026-03-23',conclusion:'AI视频分析技术当前成熟度不足，建议暂缓',checklist:[{text:'需求完整性',done:true},{text:'技术可行性',done:false},{text:'资源评估',done:true},{text:'排期合理性',done:true}],comments:[]},
+{id:'RV-0002',demandId:'DMD-0004',status:'已退回',reviewers:['张架构','李业务'],meeting:'2026-03-05 10:00',deadline:'2026-03-06',conclusion:'需求描述不够具体，请补充详细业务场景和验收标准',checklist:[{text:'需求完整性',done:false},{text:'技术可行性',done:true},{text:'资源评估',done:true},{text:'排期合理性',done:true}],comments:[]},
+];
+
+// ===== 数据模型转换（兼容旧数据） =====
+function normalizeReviews(rawReviews) {
+  return rawReviews.map(function(r) {
+    return Models.Review.create({
+      id: r.id,
+      demandId: r.demandId,
+      status: typeof r.status === 'string' ? Models.Enum.ReviewStatus[r.status.replace(/[\s-]/g, '_').toUpperCase()] || Models.Enum.ReviewStatus.PENDING : (r.status || Models.Enum.ReviewStatus.PENDING),
+      reviewers: r.reviewers || [],
+      meeting: r.meeting || '',
+      deadline: r.deadline || '',
+      conclusion: r.conclusion || '',
+      checklist: r.checklist || [],
+      comments: r.comments || []
+    });
+  });
+}
+
+reviews = normalizeReviews(reviews);
+
+var rvPage=1,rvSize=8;
+var rvColors={'待评审':'var(--warning-subtle)|var(--warning)','评审中':'var(--brand-subtle)|var(--brand)','已通过':'var(--success-subtle)|var(--success)','已驳回':'var(--danger-subtle)|var(--danger)','已退回':'var(--brand-subtle)|var(--text-tertiary)','建议合并':'var(--amber-subtle)|var(--amber)','建议迭代':'var(--brand-subtle)|oklch(55% 0.22 315)'};
+
+function getDemand(id){for(var i=0;i<DEMANDS.length;i++){if(DEMANDS[i].id===id)return DEMANDS[i];}return null;}
+
+function renderReview(){
+  var sf=document.getElementById('rvStatus').value;
+  var rf=document.getElementById('rvReviewer').value;
+  var search=document.getElementById('rvSearch').value.trim().toLowerCase();
+  var data=reviews.filter(function(r){
+    if(sf&&r.status!==sf)return false;
+    if(rf&&r.reviewers.indexOf(rf)===-1)return false;
+    if(search){
+      var d=getDemand(r.demandId);
+      if(!d||d.title.toLowerCase().indexOf(search)===-1)return false;
+    }
+    return true;
+  });
+  // 更新统计数字（只统计总数，不受过滤影响）
+  updateTotalStats();
+  var total=data.length;
+  var tp=Math.max(1,Math.ceil(total/rvSize));
+  if(rvPage>tp)rvPage=tp;
+  var start=(rvPage-1)*rvSize;
+  var pd=data.slice(start,start+rvSize);
+  var tb=document.getElementById('reviewBody');
+  var nr=document.getElementById('rvNoResult');
+  if(pd.length===0){tb.innerHTML='';nr.style.display='block';}
+  else{
+    nr.style.display='none';
+    var h='';
+    for(var i=0;i<pd.length;i++){
+      var r=pd[i];
+      var d=getDemand(r.demandId);
+      var dc=rvColors[r.status]?rvColors[r.status].split('|'):['var(--surface-subtle)','var(--text-tertiary)'];
+      var pc=d?(pColors[d.priority]||'var(--surface-subtle)|var(--text-tertiary)').split('|'):['var(--surface-subtle)','var(--text-tertiary)'];
+      var tc=d?(typeColors[d.type]||'var(--text-tertiary)|var(--surface-subtle)').split('|'):['var(--text-tertiary)','var(--surface-subtle)'];
+      // 评审完成（已驳回）的需求置灰显示，已通过的不置灰
+      var isReviewDone=(r.status==='已驳回');
+      var rowStyle=isReviewDone?' style="background:var(--surface-subtle);opacity:0.85"':'';
+      var titleStyle=isReviewDone?' style="color:var(--text-tertiary);font-weight:500;cursor:pointer"':' style="color:var(--text-primary);font-weight:500;cursor:pointer"';
+      h+='<tr'+rowStyle+'>';
+      h+='<td style="color:var(--brand);font-family:monospace;font-size:11px'+(isReviewDone?';opacity:0.7':'')+'">'+r.id+'</td>';
+      h+='<td class="text-ellipsis"'+titleStyle+' title="'+(d?d.title:r.demandId)+'" onclick="showReviewDetail(\''+r.id+'\')">'+(d?d.title:r.demandId)+'</td>';
+      h+='<td><span class="tag" style="background:'+tc[1]+';color:'+tc[0]+(isReviewDone?';opacity:0.7':'')+'">'+tLabels[(d?d.type:'其他')]+'</span></td>';
+      h+='<td>'+badge(pColors,d?d.priority:'-')+'</td>';
+      h+='<td><span class="badge" style="background:'+dc[0]+';color:'+dc[1]+(isReviewDone?';opacity:0.85':'')+'">'+r.status+'</span></td>';
+      h+='<td style="font-size:11px'+(isReviewDone?';color:var(--text-tertiary)':'')+'">'+r.reviewers.join('、')+'</td>';
+      h+='<td style="font-size:11px;color:var(--text-tertiary)">'+r.meeting+'</td>';
+      h+='<td style="font-size:11px;color:var(--text-tertiary)">'+r.deadline+'</td>';
+      // 操作列：详情按钮 + 评审/分配任务按钮
+      h+='<td>';
+      h+='<a href="javascript:void(0)" class="action-link" onclick="showReviewDetail(\''+r.id+'\')"><i class="fa-regular fa-eye" style="font-size:10px"></i>详情</a>';
+      if(r.status==='已通过'){
+        h+='<a href="javascript:void(0)" class="action-link success" onclick="showAssignTask(\''+r.id+'\')"><i class="fa-solid fa-user-plus" style="font-size:10px"></i>分配任务</a>';
+      }else if(r.status!=='已驳回'){
+        h+='<a href="javascript:void(0)" class="action-link" onclick="showReviewDetail(\''+r.id+'\')"><i class="fa-regular fa-pen-to-square" style="font-size:10px"></i>评审</a>';
+      }
+      h+='</td>';
+      h+='</tr>';
+    }
+    tb.innerHTML=h;
+  }
+  document.getElementById('rvPageInfo').textContent='共 '+total+' 条记录';
+  var ph='<button class="page-btn nav'+(rvPage<=1?' disabled':'')+'" onclick="rvGoPage('+Math.max(1,rvPage-1)+')"'+(rvPage<=1?' disabled':'')+'><i class="fa-solid fa-chevron-left" style="font-size:9px"></i></button>';
+  for(var p=1;p<=tp;p++){
+    if(p===rvPage)ph+='<button class="page-btn active">'+p+'</button>';
+    else ph+='<button class="page-btn" onclick="rvGoPage('+p+')">'+p+'</button>';
+  }
+  ph+='<button class="page-btn nav'+(rvPage>=tp?' disabled':'')+'" onclick="rvGoPage('+Math.min(tp,rvPage+1)+')"'+(rvPage>=tp?' disabled':'')+'><i class="fa-solid fa-chevron-right" style="font-size:9px"></i></button>';
+  document.getElementById('rvPageBtns').innerHTML=ph;
+  // 同步高亮卡片：根据当前 rvStatus 下拉值，高亮对应的统计卡片
+  syncStatCardActive();
+}
+
+function rvGoPage(p){rvPage=p;renderReview();}
+
+function syncStatCardActive(){
+  var currentStatus = document.getElementById('rvStatus').value;
+  document.querySelectorAll('.stat-card').forEach(function(card){
+    card.classList.remove('active');
+  });
+  // 根据按钮的 onclick 属性匹配对应的状态
+  var cards = document.querySelectorAll('.stat-card');
+  for (var i = 0; i < cards.length; i++) {
+    var onclick = cards[i].getAttribute('onclick') || '';
+    // onclick 格式: filterByStatus(this,'待评审')
+    var m = onclick.match(/filterByStatus\(this,'([^']+)'\)/);
+    if (m) {
+      var cardStatus = m[1];
+      var dropdownValue = (cardStatus === '全部' ? '' : cardStatus);
+      if (dropdownValue === currentStatus) {
+        cards[i].classList.add('active');
+        break;
+      }
+    }
+  }
+}
+
+function filterByStatus(el, status){
+  // 重置分页到第一页
+  rvPage = 1;
+  // 设置筛选条件：点击「全部」则清空状态筛选
+  document.getElementById('rvStatus').value = (status === '全部' ? '' : status);
+  // 调用渲染
+  renderReview();
+  // 高亮卡片：移除所有 active，给当前卡片添加 active
+  document.querySelectorAll('.stat-card').forEach(function(card){
+    card.classList.remove('active');
+  });
+  el.classList.add('active');
+}
+
+// 更新统计数字（总数，不受过滤影响）
+function updateTotalStats(){
+  if(!reviews||reviews.length===0){
+    document.getElementById('stat 全部').textContent='0';
+    document.getElementById('stat 待评审').textContent='0';
+    document.getElementById('stat 评审中').textContent='0';
+    document.getElementById('stat 已通过').textContent='0';
+    document.getElementById('stat 已驳回').textContent='0';
+    return;
+  }
+  var stats={'待评审':0,'评审中':0,'已通过':0,'已驳回':0,'已退回':0};
+  for(var i=0;i<reviews.length;i++){
+    var r=reviews[i];
+    if(r.status&&stats[r.status]!==undefined){
+      stats[r.status]++;
+    }
+  }
+  var el1=document.getElementById('stat 全部');
+  var el2=document.getElementById('stat 待评审');
+  var el3=document.getElementById('stat 评审中');
+  var el4=document.getElementById('stat 已通过');
+  var el5=document.getElementById('stat 已驳回');
+  if(el1){el1.textContent=reviews.length;}
+  if(el2){el2.textContent=stats['待评审'];}
+  if(el3){el3.textContent=stats['评审中'];}
+  if(el4){el4.textContent=stats['已通过'];}
+  if(el5){el5.textContent=stats['已驳回'];}
+}
+
+function showReviewModal(){
+  var m=document.getElementById('modalContent');m.className='modal-box wide';
+  m.innerHTML='<div class="modal-header"><h3>发起需求评审</h3><div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div></div><div class="modal-body">'+
+    '<div class="form-group"><label><span class="req">*</span>搜索并选择需求</label><input type="text" class="input" id="rvDemandSearch" placeholder="输入需求编号或标题搜索，点击选择..." oninput="showDemandDropdown()">'+
+    '<div id="demandDropdown" style="position:absolute;z-index:1000;background:var(--surface-base);border:1px solid var(--border-default);border-radius:4px;max-height:200px;overflow-y:auto;width:400px;display:none"></div></div>'+
+    '<input type="hidden" id="rvDemand">'+
+    '<div class="form-row"><div class="form-group"><label><span class="req">*</span>评审会议时间</label><input type="datetime-local" class="input" id="rvMeeting"></div><div class="form-group"><label><span class="req">*</span>截止日期</label><input type="date" class="input" id="rvDeadline"></div></div>'+
+    '<div class="form-group"><label><span class="req">*</span>评审人员</label><div id="reviewersList" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px">'+
+    '<label class="check-row" style="position:relative"><input type="checkbox" value="张架构" checked> 张架构（架构师）<span style="position:absolute;right:-16px;top:-4px;color:var(--text-tertiary);font-size:10px;cursor:pointer" onclick="this.parentElement.remove()">✕</span></label>'+
+    '<label class="check-row" style="position:relative"><input type="checkbox" value="李业务"> 李业务（产品）<span style="position:absolute;right:-16px;top:-4px;color:var(--text-tertiary);font-size:10px;cursor:pointer" onclick="this.parentElement.remove()">✕</span></label>'+
+    '<label class="check-row" style="position:relative"><input type="checkbox" value="王技术"> 王技术（开发）<span style="position:absolute;right:-16px;top:-4px;color:var(--text-tertiary);font-size:10px;cursor:pointer" onclick="this.parentElement.remove()">✕</span></label>'+
+    '<label class="check-row" style="position:relative"><input type="checkbox" value="赵工程"> 赵工程（开发）<span style="position:absolute;right:-16px;top:-4px;color:var(--text-tertiary);font-size:10px;cursor:pointer" onclick="this.parentElement.remove()">✕</span></label></div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px"><input type="text" class="input" id="newReviewer" placeholder="输入评审人姓名" style="flex:1;height:32px"><button class="btn btn-sm btn-outline" onclick="addReviewer()">添加评审人</button></div></div>'+
+    '<div class="form-group"><label>评审关注点</label><textarea id="rvNote" class="textarea" placeholder="评审关注点或备注..."></textarea></div></div>'+
+    '<div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="createReview()">发起评审</button></div>';
+  document.getElementById('newModal').classList.add('show');
+  showDemandDropdown();
+}
+
+function showDemandDropdown(){
+  var search=document.getElementById('rvDemandSearch').value.trim().toLowerCase();
+  var dropdown=document.getElementById('demandDropdown');
+  var pending=DEMANDS.filter(function(d){return d.status==='待评审';});
+  if(pending.length===0){
+    dropdown.innerHTML='<div style="padding:8px;color:var(--text-tertiary);font-size:12px">暂无待评审需求</div>';
+    dropdown.style.display='block';
+    return;
+  }
+  var html='';
+  for(var i=0;i<pending.length;i++){
+    if(!search||pending[i].id.toLowerCase().indexOf(search)!==-1||pending[i].title.toLowerCase().indexOf(search)!==-1){
+      html+='<div style="padding:8px;cursor:pointer;border-bottom:1px solid var(--border-subtle)" onmouseover="this.background=\'var(--surface-subtle)\'" onmouseout="this.background=\'var(--surface-base)\'" onclick="selectDemand(\''+pending[i].id+'\',\''+pending[i].title.replace(/'/g,"\\'")+'\')">'+
+        '<div style="font-size:12px;color:var(--brand);font-family:monospace">'+pending[i].id+'</div>'+
+        '<div style="font-size:13px;color:var(--text-primary);margin-top:2px">'+pending[i].title+'</div>'+
+        '</div>';
+    }
+  }
+  dropdown.innerHTML=html||'<div style="padding:8px;color:var(--text-tertiary);font-size:12px">无匹配需求</div>';
+  dropdown.style.display='block';
+}
+
+function selectDemand(id,title){
+  document.getElementById('rvDemandSearch').value=id+' - '+title;
+  document.getElementById('rvDemand').value=id;
+  document.getElementById('demandDropdown').style.display='none';
+}
+
+function addReviewer(){
+  var name=document.getElementById('newReviewer').value.trim();
+  if(!name){alert('请输入评审人姓名');return;}
+  var list=document.getElementById('reviewersList');
+  var label=document.createElement('label');
+  label.className='check-row';
+  label.style.position='relative';
+  label.innerHTML='<input type="checkbox" value="'+name+'" checked> '+name+'<span style="position:absolute;right:-16px;top:-4px;color:var(--text-tertiary);font-size:10px;cursor:pointer" onclick="this.parentElement.remove()">✕</span>';
+  list.appendChild(label);
+  document.getElementById('newReviewer').value='';
+}
+
+function createReview(){
+  var did=document.getElementById('rvDemand').value;
+  var mt=document.getElementById('rvMeeting').value;
+  var dl=document.getElementById('rvDeadline').value;
+  var reviewers=[];
+  document.querySelectorAll('#modalContent input[type=checkbox]:checked').forEach(function(cb){reviewers.push(cb.value);});
+  if(!did){alert('请选择需求');return;}
+  if(reviewers.length===0){alert('请选择评审人');return;}
+  var n=String(reviews.length+1).padStart(4,'0');
+  reviews.unshift({id:'RV-'+n,demandId:did,status:'待评审',reviewers:reviewers,meeting:mt||'待定',deadline:dl||'',conclusion:'',checklist:[{text:'需求完整性',done:false},{text:'技术可行性',done:false},{text:'资源评估',done:false},{text:'排期合理性',done:false}],comments:[]});
+  for(var i=0;i<DEMANDS.length;i++){if(DEMANDS[i].id===did){DEMANDS[i].status='评审中';if(!DEMANDS[i].history)DEMANDS[i].history=[];DEMANDS[i].history.push({time:now(),action:'提交评审',user:DEMANDS[i].reporter});break;}}
+  closeModal();renderReview();
+  toast('评审单 RV-'+n+' 已创建，需求状态已更新为"评审中"','success');
+}
+
+function showReviewDetail(rvId){
+  var r=reviews.find(function(x){return x.id===rvId;});if(!r)return;
+  var d=getDemand(r.demandId);
+  var dc=rvColors[r.status]?rvColors[r.status].split('|'):['var(--surface-subtle)','var(--text-tertiary)'];
+  var tc=d?(typeColors[d.type]||'var(--text-tertiary)|var(--surface-subtle)').split('|'):['var(--text-tertiary)','var(--surface-subtle)'];
+  
+  // 从需求台账提取完整内容
+  var demandHtml='';
+  if(d){
+    demandHtml+='<div class="detail-row"><div class="detail-label">需求编号</div><div class="detail-value" style="color:var(--brand);font-family:monospace">'+d.id+'</div></div>';
+    demandHtml+='<div class="detail-row"><div class="detail-label">需求标题</div><div class="detail-value" style="font-weight:600">'+d.title+'</div></div>';
+    demandHtml+='<div class="detail-row"><div class="detail-label">类型</div><div class="detail-value"><span class="tag" style="background:'+tc[1]+';color:'+tc[0]+'">'+d.type+'</span></div></div>';
+    demandHtml+='<div class="detail-row"><div class="detail-label">业务域</div><div class="detail-value">'+d.domain+'</div></div>';
+    demandHtml+='<div class="detail-row"><div class="detail-label">优先级</div><div class="detail-value">'+badge(pColors,d.priority)+'</div></div>';
+    demandHtml+='<div class="detail-row"><div class="detail-label">负责人</div><div class="detail-value">'+(d.assignee||'未指定')+'</div></div>';
+    if(d.businessBackground)demandHtml+='<div class="detail-row"><div class="detail-label">业务背景</div><div class="detail-value" style="line-height:1.5">'+d.businessBackground+'</div></div>';
+    if(d.userStory)demandHtml+='<div class="detail-row"><div class="detail-label">用户故事</div><div class="detail-value" style="line-height:1.5">'+d.userStory+'</div></div>';
+    if(d.expectedValue)demandHtml+='<div class="detail-row"><div class="detail-label">预期价值</div><div class="detail-value" style="line-height:1.5">'+d.expectedValue+'</div></div>';
+    if(d.acceptance)demandHtml+='<div class="detail-row"><div class="detail-label">验收标准</div><div class="detail-value" style="line-height:1.5">'+d.acceptance+'</div></div>';
+    if(d.desc)demandHtml+='<div class="detail-row" style="border:none"><div class="detail-label">需求描述</div><div class="detail-value" style="line-height:1.5">'+d.desc+'</div></div>';
+    if(d.parentId){
+      var parent=getDemand(d.parentId);
+      if(parent)demandHtml+='<div class="detail-row"><div class="detail-label">父需求</div><div class="detail-value"><span style="color:var(--brand);font-family:monospace;font-size:11px">'+d.parentId+'</span> - '+parent.title+'</div></div>';
+    }
+    if(d.iterationNote)demandHtml+='<div class="detail-row"><div class="detail-label">迭代说明</div><div class="detail-value">'+d.iterationNote+'</div></div>';
+  }
+  
+  var h='<div class="detail-header"><div><h3>评审 '+r.id+'</h3><span style="font-size:11px;color:var(--text-tertiary)">'+(d?'需求：'+d.id+' '+d.title:'')+'</span></div><div class="modal-close" onclick="closeDetail()"><i class="fa-solid fa-xmark"></i></div></div>';
+  h+='<div class="tabs"><div class="tab active" onclick="switchRTab(this)">评审信息</div><div class="tab" onclick="switchRTab(this)">需求详情</div><div class="tab" onclick="switchRTab(this)">评审清单</div><div class="tab" onclick="switchRTab(this)">评审结论</div><div class="tab" onclick="switchRTab(this)">评论</div></div>';
+  h+='<div class="tab-content active" id="tab-rv-info">';
+  h+='<div class="detail-row"><div class="detail-label">评审单号</div><div class="detail-value" style="color:var(--brand);font-family:monospace">'+r.id+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">评审状态</div><div class="detail-value">'+badge(rvColors,r.status)+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">评审人</div><div class="detail-value">'+r.reviewers.join('、')+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">会议时间</div><div class="detail-value">'+r.meeting+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">截止日期</div><div class="detail-value">'+r.deadline+'</div></div>';
+  h+='<div class="detail-row"><div class="detail-label">需求类型</div><div class="detail-value"><span class="tag" style="background:'+tc[1]+';color:'+tc[0]+'">'+(d?d.type:'其他')+'</span></div></div>';
+  h+='<div class="detail-row"><div class="detail-label">优先级</div><div class="detail-value">'+badge(pColors,d?d.priority:'-')+'</div></div>';
+  h+='</div>';
+  h+='<div class="tab-content" id="tab-rv-demand">';
+  h+=demandHtml||'<div style="color:var(--text-tertiary);font-size:12px;text-align:center;padding:20px">暂无需求信息，请从需求台账发起评审</div>';
+  h+='</div>';
+  h+='<div class="tab-content" id="tab-rv-check">';
+  h+='<div style="margin-bottom:10px;font-size:12px;color:var(--text-secondary)">请逐项检查：</div>';
+  for(var ci=0;ci<r.checklist.length;ci++){h+='<div class="check-row"><input type="checkbox" '+(r.checklist[ci].done?'checked':'')+' onchange="toggleCheck(\''+rvId+'\','+ci+',this.checked)"><span style="font-size:12px">'+r.checklist[ci].text+'</span></div>';}
+  var doneC=r.checklist.filter(function(c){return c.done;}).length;
+  h+='<div style="margin-top:10px;padding:6px 10px;border-radius:4px;font-size:11px;background:var(--surface-subtle);color:var(--text-secondary)">已完成 '+doneC+'/'+r.checklist.length+' 项</div>';
+  h+='</div>';
+  h+='<div class="tab-content" id="tab-rv-result">';
+  if(r.status!=='已通过'&&r.status!=='已驳回'&&r.status!=='已退回'){
+    h+='<div class="form-group"><label>评审操作</label><div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">'+
+      '<button class="btn btn-sm" style="background:var(--success);color:var(--text-inverse)" onclick="submitReview(\''+rvId+'\',\'已通过\')">✓ 通过</button>'+
+      '<button class="btn btn-sm" style="background:var(--danger);color:var(--text-inverse)" onclick="submitReview(\''+rvId+'\',\'已驳回\')">✕ 驳回</button>'+
+      '<button class="btn btn-sm" style="background:oklch(58% 0.005 250);color:var(--text-inverse)" onclick="submitReview(\''+rvId+'\',\'已退回\')">↩ 退回</button>'+
+      '<button class="btn btn-sm btn-outline" onclick="submitReview(\''+rvId+'\',\'建议合并\')" title="建议与同类需求合并">⟿ 建议合并</button>'+
+      '<button class="btn btn-sm btn-outline" onclick="submitReview(\''+rvId+'\',\'建议迭代\')" title="建议作为迭代版本发布">⤵ 建议迭代</button></div></div>';
+    h+='<div class="form-group"><label>评审意见</label><textarea id="rvConclusion" class="textarea" placeholder="请输入评审意见...">'+(r.conclusion||'')+'</textarea></div>';
+  }else{
+    h+='<div style="padding:10px;border-radius:4px;background:'+(r.status==='已通过'?'var(--success-subtle)':r.status==='已驳回'?'var(--danger-subtle)':r.status==='已退回'?'var(--brand-subtle)':'var(--amber-subtle)')+';margin-bottom:12px">';
+    h+='<div style="font-size:13px;font-weight:600;color:'+(r.status==='已通过'?'var(--success)':r.status==='已驳回'?'var(--danger)':'var(--brand)')+'">'+r.status+(r.conclusion&&(r.status==='建议合并'||r.status==='建议迭代')?' → '+r.conclusion:'')+'</div>';
+    h+='<div style="font-size:12px;color:var(--text-primary);margin-top:2px">'+(r.conclusion&&r.status!=='已通过'&&r.status!=='已驳回'&&r.status!=='已退回'&&r.status!=='建议合并'&&r.status!=='建议迭代'?r.conclusion:(r.conclusion&&(r.status==='已通过'||r.status==='已驳回'||r.status==='已退回')?r.conclusion:'暂无意见'))+'</div></div>';
+  }
+  h+='</div>';
+  h+='<div class="tab-content" id="tab-rv-comments">';
+  h+='<div id="rvCommentList">';
+  if(r.comments&&r.comments.length>0){
+    for(var ci=0;ci<r.comments.length;ci++){
+      var c=r.comments[ci];
+      h+='<div style="padding:10px 0;border-bottom:1px solid var(--border-subtle)"><b style="font-size:12px">'+c.user+'</b> <span style="font-size:10px;color:var(--text-tertiary)">'+c.time+'</span><div style="font-size:12px;color:var(--text-primary);margin-top:2px">'+c.text+'</div></div>';
+    }
+  }else{
+    h+='<div style="color:var(--text-tertiary);font-size:12px;text-align:center;padding:16px">暂无评论</div>';
+  }
+  h+='</div>';
+  h+='<div style="display:flex;gap:8px;margin-top:12px;align-items:center"><div class="w-7 h-7 rounded-full flex items-center justify-center text-xs flex-shrink-0" style="background:var(--brand-subtle);color:var(--brand)">张</div>'+
+    '<input type="text" class="input flex-1" id="rvNewComment" placeholder="输入评论，按 Enter 发送..." style="height:32px" onkeydown="if(event.key===\'Enter\'&&this.value.trim()){addReviewComment(\''+rvId+'\',this.value.trim());this.value=\'\';}">'+
+    '<button class="btn btn-primary btn-sm" onclick="var inp=document.getElementById(\'rvNewComment\');if(inp.value.trim()){addReviewComment(\''+rvId+'\',inp.value.trim());inp.value=\'\';}">发送</button></div>';
+  h+='</div>';
+  document.getElementById('detailPanel').innerHTML=h;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+
+function switchRTab(el){
+  var tabs=el.parentElement.querySelectorAll('.tab');var idx=0;
+  for(var i=0;i<tabs.length;i++){tabs[i].classList.toggle('active',tabs[i]===el);if(tabs[i]===el)idx=i;}
+  var contents=el.closest('.detail-panel').querySelectorAll('.tab-content');
+  for(var i=0;i<contents.length;i++)contents[i].classList.toggle('active',i===idx);
+}
+
+function toggleCheck(rvId,idx,chk){var r=reviews.find(function(x){return x.id===rvId;});if(r)r.checklist[idx].done=chk;}
+
+function submitReview(rvId,conclusion){
+  var r=reviews.find(function(x){return x.id===rvId;});if(!r)return;
+  var tEl=document.getElementById('rvConclusion');
+  var t=tEl?tEl.value.trim():'';
+  if(!t){alert('请输入评审意见');return;}
+  var allDone=r.checklist.every(function(c){return c.done;});
+  if(!allDone&&conclusion==='已通过'){if(!confirm('评审清单未完成，确定通过？'))return;}
+  r.status=conclusion;r.conclusion=t;
+  // 更新所有关联需求的状态
+  if(r.demandIds&&r.demandIds.length>0){
+    for(var i=0;i<r.demandIds.length;i++){
+      for(var j=0;j<DEMANDS.length;j++){
+        if(DEMANDS[j].id===r.demandIds[i]){
+          if(conclusion==='已通过'){
+            DEMANDS[j].status='设计中';
+            if(!DEMANDS[j].history)DEMANDS[j].history=[];
+            DEMANDS[j].history.push({time:now(),action:'评审通过：'+t,user:'评审组'});
+          }else if(conclusion==='已驳回'){
+            DEMANDS[j].status='待评审';
+            if(!DEMANDS[j].history)DEMANDS[j].history=[];
+            DEMANDS[j].history.push({time:now(),action:'评审驳回：'+t,user:'评审组'});
+          }else if(conclusion==='已退回'){
+            DEMANDS[j].status='待评审';
+            if(!DEMANDS[j].history)DEMANDS[j].history=[];
+            DEMANDS[j].history.push({time:now(),action:'评审退回：'+t,user:'评审组'});
+          }
+          break;
+        }
+      }
+    }
+  }else if(r.demandId){
+    var d=getDemand(r.demandId);
+    if(d){
+      if(conclusion==='已通过'){d.status='设计中';if(!d.history)d.history=[];d.history.push({time:now(),action:'评审通过：'+t,user:'评审组'});
+        // 跨页联动：通知需求台账页面更新状态
+        try { localStorage.setItem('demand_status_update', JSON.stringify({demandId: d.id, newStatus: '设计中', timestamp: now()})); } catch(e){}
+      }
+      else if(conclusion==='已驳回'){d.status='待评审';if(!d.history)d.history=[];d.history.push({time:now(),action:'评审驳回：'+t,user:'评审组'});}
+      else if(conclusion==='已退回'){d.status='待评审';if(!d.history)d.history=[];d.history.push({time:now(),action:'评审退回：'+t,user:'评审组'});}
+    }
+  }
+  // 调用 demand.html 的回调函数（如果是批量评审）
+  if(typeof onReviewComplete==='function'){onReviewComplete(rvId,conclusion,t);}
+  closeDetail();renderReview();
+  toast('评审已提交：'+conclusion,conclusion==='已通过'?'success':'warning');
+}
+
+function addReviewComment(rvId,text){
+  var r=reviews.find(function(x){return x.id===rvId;});if(!r)return;
+  if(!r.comments)r.comments=[];
+  r.comments.push({user:'张架构',time:new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(/\//g,'-'),text:text});
+  var list=document.getElementById('rvCommentList');
+  if(list){
+    var html='';
+    for(var i=0;i<r.comments.length;i++){
+      var c=r.comments[i];
+      html+='<div style="padding:10px 0;border-bottom:1px solid var(--border-subtle)"><b style="font-size:12px">'+c.user+'</b> <span style="font-size:10px;color:var(--text-tertiary)">'+c.time+'</span><div style="font-size:12px;color:var(--text-primary);margin-top:2px">'+c.text+'</div></div>';
+    }
+    list.innerHTML=html;
+  }
+}
+
+function now(){return new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).replace(/\//g,'-');}
+
+// 分配任务：已通过的评审可以指定负责人（单选必填）和成员（多选选填）
+function showAssignTask(rvId){
+  var r=reviews.find(function(x){return x.id===rvId;});if(!r)return;
+  var d=getDemand(r.demandId);if(!d){toast('未找到关联需求','warning');return;}
+  
+  var members=['张架构','李业务','王技术','赵工程','孙分析','周运维','郑安全','冯环保'];
+  var currentAssignee=d.assignee||'';
+  // 获取已分配的成员（从demand的members字段或空数组）
+  var currentMembers=d.members||[];
+  
+  var h='<div class="modal-header"><h3>分配任务 - '+r.id+'</h3><div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div></div>';
+  h+='<div class="modal-body">';
+  h+='<div style="background:var(--success-subtle);border-left:3px solid var(--success);border-radius:0 4px 4px 0;padding:10px 12px;margin-bottom:16px">';
+  h+='<div style="font-size:12px;color:var(--success);font-weight:600;margin-bottom:4px"><i class="fa-solid fa-check-circle mr-1"></i>评审已通过</div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary)"><span style="color:var(--brand);font-family:monospace">'+d.id+'</span> '+d.title+'</div></div>';
+  // 负责人（单选，必填）
+  h+='<div class="form-group"><label><span class="req">*</span>负责人</label><select class="filter-select" id="assignAssignee" style="height:36px"><option value="">请选择负责人</option>';
+  for(var i=0;i<members.length;i++){h+='<option'+(members[i]===currentAssignee?' selected':'')+'>'+members[i]+'</option>';}
+  h+='</select><div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">负责人将拥有该需求的全部权限</div></div>';
+  // 成员（多选，选填）
+  h+='<div class="form-group"><label>成员 <span style="font-size:11px;color:var(--text-tertiary);font-weight:normal">（多选，选填）</span></label><div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--surface-subtle);border-radius:4px">';
+  for(var i=0;i<members.length;i++){
+    var isChecked=currentMembers.indexOf(members[i])!==-1?'checked':'';
+    h+='<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;background:var(--surface-base);padding:4px 8px;border-radius:4px;border:1px solid var(--border-default)"><input type="checkbox" name="assignMembers" value="'+members[i]+'" '+isChecked+' style="accent-color:var(--brand)">'+members[i]+'</label>';
+  }
+  h+='</div><div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">成员将拥有装配画布的设计研发权限</div></div>';
+  h+='<div class="form-group"><label>评审结论</label><div style="padding:8px 10px;background:var(--surface-subtle);border-radius:4px;font-size:12px;color:var(--text-secondary)">'+r.conclusion+'</div></div>';
+  h+='</div>';
+  h+='<div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveAssignTask(\''+rvId+'\')">保存分配</button></div>';
+  
+  document.getElementById('modalContent').innerHTML=h;
+  document.getElementById('newModal').classList.add('show');
+}
+
+function saveAssignTask(rvId){
+  var r=reviews.find(function(x){return x.id===rvId;});if(!r)return;
+  var d=getDemand(r.demandId);if(!d)return;
+  
+  var newAssignee=document.getElementById('assignAssignee').value;
+  if(!newAssignee){alert('请选择负责人');return;}
+  
+  // 获取选中的成员
+  var selectedMembers=[];
+  var memberCbs=document.querySelectorAll('input[name="assignMembers"]:checked');
+  for(var i=0;i<memberCbs.length;i++){selectedMembers.push(memberCbs[i].value);}
+  
+  // 更新需求台账数据
+  d.assignee=newAssignee;
+  d.members=selectedMembers;
+  if(!d.history)d.history=[];
+  var memberText=selectedMembers.length>0?'，成员：'+selectedMembers.join('、'):'';
+  d.history.push({time:now(),action:'任务分配：负责人→'+newAssignee+memberText,user:'评审组'});
+  
+  // 赋予负责人和成员装配画布权限（存储到权限表）
+  grantAssemblyPermission(d.id,newAssignee,selectedMembers);
+  
+  closeModal();
+  toast('任务已分配给 '+newAssignee+(selectedMembers.length>0?'，成员：'+selectedMembers.join('、'):''),'success');
+}
+
+// 赋予装配画布设计研发权限
+function grantAssemblyPermission(demandId,assignee,members){
+  // 初始化全局权限表
+  if(!window.assemblyPermissions)window.assemblyPermissions={};
+  // 该需求的权限列表
+  window.assemblyPermissions[demandId]={
+    owner:assignee,
+    members:members||[],
+    grantedAt:now()
+  };
+  console.log('已赋予权限：',demandId,window.assemblyPermissions[demandId]);
+}
+
+// 页面加载完成后初始化
+window.addEventListener('DOMContentLoaded', function(){
+  renderReview();
+});
+</script>
+<script>
+Scaffold.init('review');
+
+  // 接收来自需求台账的导航参数
+  var navParams = Scaffold.getNavParams();
+  if (navParams && navParams.demandId) {
+    Scaffold.showToast('来自需求: ' + (navParams.demandTitle || navParams.demandId), 'info');
+  }
+</script>
+</body></html>
+
