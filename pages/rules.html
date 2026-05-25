@@ -406,7 +406,14 @@
       <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100" onclick="closeAddActionModal()"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="flex-1 overflow-y-auto p-5 space-y-3">
-      <div><label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">动作类型</label><select class="input w-full" id="aaType"><option value="set_status">设置状态</option><option value="trigger_alert">触发告警</option><option value="call_api">调用 API</option><option value="branch">分支跳转</option><option value="rollback">回滚操作</option><option value="notify">发送通知</option><option value="log">记录日志</option></select></div>
+      <div><label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">动作类型</label><select class="input w-full" id="aaType" onchange="toggleMqttFields()"><option value="set_status">设置状态</option><option value="trigger_alert">触发告警</option><option value="call_api">调用 API</option><option value="branch">分支跳转</option><option value="rollback">回滚操作</option><option value="notify">发送通知</option><option value="log">记录日志</option><option value="publish">发布消息</option></select></div>
+      <div id="mqttConfigFields" style="display:none">
+        <div><label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">MQTT 主题</label><input type="text" class="input w-full" id="aaMqttTopic" placeholder="/well/{wellId}/telemetry"></div>
+        <div class="flex gap-2">
+          <div class="flex-1"><label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">QoS</label><select class="input w-full" id="aaMqttQos"><option value="0">0（至多一次）</option><option value="1" selected>1（至少一次）</option><option value="2">2（恰好一次）</option></select></div>
+          <div class="flex-1"><label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">保留消息</label><select class="input w-full" id="aaMqttRetain"><option value="false">否</option><option value="true">是</option></select></div>
+        </div>
+      </div>
       <div><label class="text-xs font-medium block mb-1" style="color:var(--text-secondary)">动作参数</label><input type="text" class="input w-full" id="aaParam" placeholder="例如：紧急告警, 短信通知"></div>
     </div>
     <div class="px-5 py-3 border-t flex justify-end gap-2" style="border-color:var(--border-default)">
@@ -478,6 +485,7 @@ var allRules = [
   // 消息交互规则
   { id:'R006', name:'数据采集异常消息路由', category:'msg-interact', type:'msg-interact', domain:'油田技术服务', conditions:[{f:'数据完整性',op:'<',v:'95',u:'%'}], actions:[{t:'trigger_alert',p:'数据质量告警'},{t:'log',p:'记录异常消息'}], enabled:true, version:'v2.0', owner:'周消息', pubDate:'2024-02-20', status:'published', rollback:true, strategy:'auto', alertLevel:'warning', alertChannel:'email', icon:'fa-message', color:'var(--info)' },
   { id:'R007', name:'实时数据降级消费策略', category:'msg-interact', type:'msg-interact', domain:'工程建设', conditions:[{f:'消息队列积压',op:'>',v:'10000',u:'条'},{f:'消费者延迟',op:'>',v:'30',u:'秒'}], actions:[{t:'set_status',p:'降级为采样消费'},{t:'notify',p:'通知数据中台'}], enabled:false, version:'v1.2', owner:'吴消息', pubDate:'2024-03-10', status:'draft', rollback:false, alertLevel:'warning', alertChannel:'webhook', icon:'fa-bolt', color:'var(--info)' },
+  { id:'R012', name:'抽油机遥测数据发布', category:'msg-interact', type:'msg-interact', domain:'油气新能源', conditions:[{f:'采集状态',op:'=',v:'正常',u:''}], actions:[{t:'publish',p:'MQTT发布遥测数据 /well/{wellId}/telemetry QoS=1'}], enabled:true, version:'v1.0', owner:'周消息', pubDate:'2024-04-15', status:'published', rollback:true, strategy:'auto', alertLevel:'info', alertChannel:'email', icon:'fa-tower-broadcast', color:'var(--info)' },
   // 事务一致性规则
   { id:'R008', name:'跨库事务回滚策略', category:'tx-consistency', type:'tx-consistency', domain:'国际贸易', conditions:[{f:'事务状态',op:'=',v:'failed',u:''}], actions:[{t:'rollback',p:'全部回滚'},{t:'log',p:'记录事务失败日志'}], enabled:true, version:'v2.5', owner:'郑事务', pubDate:'2024-01-30', status:'published', rollback:true, strategy:'auto', alertLevel:'critical', alertChannel:'sms', icon:'fa-circle-nodes', color:'var(--amber)' },
   { id:'R009', name:'SAGA补偿事务执行', category:'tx-consistency', type:'tx-consistency', domain:'销售', conditions:[{f:'阶段状态',op:'=',v:'compensate',u:''},{f:'超时时间',op:'>',v:'60',u:'秒'}], actions:[{t:'call_api',p:'执行SAGA补偿'},{t:'notify',p:'通知事务管理器'}], enabled:true, version:'v1.9', owner:'冯事务', pubDate:'2024-02-25', status:'published', rollback:false, alertLevel:'warning', alertChannel:'email', icon:'fa-arrows-rotate', color:'var(--amber)' },
@@ -635,7 +643,7 @@ function populateBuilder(){
   var al = document.getElementById('actionsList');
   al.innerHTML = '';
   (r.actions||[]).forEach(function(a, i){
-    var actionLabels = {set_status:'设置状态',trigger_alert:'触发告警',call_api:'调用API',branch:'分支跳转',rollback:'回滚操作',notify:'发送通知',log:'记录日志'};
+    var actionLabels = {set_status:'设置状态',trigger_alert:'触发告警',call_api:'调用API',branch:'分支跳转',rollback:'回滚操作',notify:'发送通知',log:'记录日志',publish:'发布消息'};
     al.innerHTML += '<div class="cond-card" draggable="true"><i class="fa-solid fa-grip-vertical cc-handle"></i><span class="cc-field">'+(actionLabels[a.t]||a.t)+'</span><span class="cc-val">'+a.p+'</span><button class="cc-del" onclick="removeAction('+i+')"><i class="fa-solid fa-xmark"></i></button></div>';
   });
 
@@ -646,7 +654,7 @@ function updateRulePreview(){
   var r = selectedRule;
   if(!r || !r.conditions || !r.actions) return;
   var condParts = (r.conditions||[]).map(function(c){ return '<span class="rp-val">'+c.f+'</span> <span class="rp-op">'+c.op+'</span> <span class="rp-val">'+c.v+(c.u?' '+c.u:'')+'</span>'; });
-  var actionLabels = {set_status:'设置状态',trigger_alert:'触发告警',call_api:'调用API',branch:'分支跳转',rollback:'回滚操作',notify:'发送通知',log:'记录日志'};
+  var actionLabels = {set_status:'设置状态',trigger_alert:'触发告警',call_api:'调用API',branch:'分支跳转',rollback:'回滚操作',notify:'发送通知',log:'记录日志',publish:'发布消息'};
   var actParts = (r.actions||[]).map(function(a){ return (actionLabels[a.t]||a.t)+'('+a.p+')'; });
   var preview = '';
   if(condParts.length > 0){
@@ -702,8 +710,16 @@ function confirmAddCondition(){
 function showAddActionModal(){
   document.getElementById('aaType').value = 'set_status';
   document.getElementById('aaParam').value = '';
+  document.getElementById('aaMqttTopic').value = '';
+  document.getElementById('aaMqttQos').value = '1';
+  document.getElementById('aaMqttRetain').value = 'false';
+  document.getElementById('mqttConfigFields').style.display = 'none';
   document.getElementById('addActionModal').classList.remove('hidden');
   document.getElementById('addActionModal').classList.add('flex');
+}
+function toggleMqttFields(){
+  var t = document.getElementById('aaType').value;
+  document.getElementById('mqttConfigFields').style.display = (t === 'publish') ? 'block' : 'none';
 }
 function closeAddActionModal(){
   document.getElementById('addActionModal').classList.add('hidden');
@@ -713,6 +729,13 @@ function confirmAddAction(){
   var t = document.getElementById('aaType').value;
   var p = document.getElementById('aaParam').value.trim();
   if(!p){ showToast('请输入动作参数','error'); return; }
+  if(t === 'publish'){
+    var topic = document.getElementById('aaMqttTopic').value.trim();
+    if(!topic){ showToast('请输入 MQTT 主题','error'); return; }
+    var qos = document.getElementById('aaMqttQos').value;
+    var retain = document.getElementById('aaMqttRetain').value;
+    p = 'MQTT发布 [' + topic + '] QoS=' + qos + (retain === 'true' ? ' retain' : '');
+  }
   if(!selectedRule.actions) selectedRule.actions = [];
   selectedRule.actions.push({t:t,p:p});
   populateBuilder();

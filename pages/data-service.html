@@ -324,6 +324,13 @@ var dataModelSource = [
       {name:'加速度',code:'acceleration',type:'float',length:8,precision:3,required:true,constraint:'0~100 m/s²'},
       {name:'速度',code:'velocity',type:'float',length:8,precision:3,required:true,constraint:'0~50 mm/s'},
       {name:'位移',code:'displacement',type:'float',length:8,precision:3,required:false,constraint:'0~500 μm'}]},
+  {id:'DM022',name:'温度场数据模型',domain:'油气新能源',type:'监测模型',
+    fields:[{name:'设备ID',code:'device_id',type:'string',length:16,precision:0,required:true,constraint:'主键编码'},
+      {name:'电机温度',code:'motor_temp',type:'float',length:6,precision:1,required:true,constraint:'-40~200°C'},
+      {name:'轴承温度',code:'bearing_temp',type:'float',length:6,precision:1,required:true,constraint:'-40~150°C'},
+      {name:'环境温度',code:'ambient_temp',type:'float',length:6,precision:1,required:true,constraint:'-40~85°C'},
+      {name:'测温点位',code:'temp_point',type:'string',length:20,precision:0,required:false,constraint:'电机/轴承/齿轮箱/井口'},
+      {name:'采集时间',code:'collect_time',type:'datetime',length:8,precision:0,required:true,constraint:'yyyy-MM-dd HH:mm:ss'}]},
 
   // 炼化新材料 (2)
   {id:'DM004',name:'炼化装置运行模型',domain:'炼化新材料',type:'运行模型',
